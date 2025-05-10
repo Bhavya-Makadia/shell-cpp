@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 using namespace std;
 
 int main()
@@ -14,7 +15,15 @@ int main()
     cout << "$ "; 
     getline(cin, input);
 
-    if(input == "exit"){
+    stringstream ss(input);
+    string command, argument;
+    ss >> command >> argument;
+
+
+    if(command == "exit"){
+      if(argument == "0"){
+        exit(0);
+      }
       break;
     }
 
