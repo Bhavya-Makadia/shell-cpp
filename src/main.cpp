@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 using namespace std;
 
 int main()
@@ -14,7 +15,10 @@ int main()
     cout << "$ "; 
     getline(cin, input);
 
-    if (input == "exit 0") return 0;
+
+    if(input == "exit 0"){
+      return 0;
+    }
 
     cout << input << ": command not found" << endl;
   }
