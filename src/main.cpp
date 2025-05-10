@@ -1,6 +1,5 @@
 #include <iostream>
 #include <string>
-#include <sstream>
 using namespace std;
 
 int main()
@@ -15,17 +14,7 @@ int main()
     cout << "$ "; 
     getline(cin, input);
 
-    stringstream ss(input);
-    string command, argument;
-    ss >> command >> argument;
-
-
-    if(command == "exit"){
-      if(argument == "0"){
-        exit(0);
-      }
-      break;
-    }
+    if (input == "exit 0") return 0;
 
     cout << input << ": command not found" << endl;
   }
