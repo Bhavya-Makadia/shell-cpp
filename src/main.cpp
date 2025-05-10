@@ -1,15 +1,23 @@
 #include <iostream>
+#include <string>
 using namespace std;
 
-int main() {
+int main()
+{
   // Flush after every std::cout / std:cerr
   cout << std::unitbuf;
   cerr << std::unitbuf;
-
-  cout << "$ ";
-
   string input;
-  getline(cin, input);
 
-  cout<< input << ": command not found" << endl;
+  while (true)
+  {
+    cout << "$ "; 
+    getline(cin, input);
+
+    if(input == "exit"){
+      break;
+    }
+
+    cout << input << ": command not found" << endl;
+  }
 }
