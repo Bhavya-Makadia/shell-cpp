@@ -20,6 +20,16 @@ int main()
       return 0;
     }
 
-    cout << input << ": command not found" << endl;
+    istringstream iss(input);
+    string command;
+    iss >> command;
+    if( command == "echo"){
+      string output;
+      getline(iss, output);
+      cout << output.substr(1) << endl;
+    } else {
+      cout << input << ": command not found" << endl;
+    }
+    
   }
 }
