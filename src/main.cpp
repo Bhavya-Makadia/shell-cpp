@@ -2,6 +2,8 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
+#include <vector>
+#include <filesystem>
 using namespace std;
 
 string trimInitialWhitespace(string str) {
@@ -47,16 +49,49 @@ int main()
       getline(iss, output);
 
       output = trimInitialWhitespace(output);
-      bool found = false;
+      bool is_builtin = false;
+      bool is_Executable = false;
+
       size_t num_builtins = sizeof(shell_builtins) / sizeof(shell_builtins[0]);
       for ( size_t i = 0; i < num_builtins; i++){
         if ( output == shell_builtins[i]){
           cout << output << " is a shell builtin"<< endl;
-          found = true;
+          is_builtin = true;
           break;
         } 
       }
-      if (!found) {
+      if (!is_builtin) {
+        char* pathEnv= getenv("PATH");
+        if( pathEnv != nullptr){
+          string pathEnvStr(pathEnv);
+          stringstream ss(pathEnvStr);
+
+          string segment;
+          vector<string> paths;
+
+          while(getline(ss, segment, ';')){
+            if(!segment.empty()){
+              paths.push_back(segment);
+            }
+          }
+
+          for (const auto& p : paths) {
+            cout << p << std::endl;
+          }
+
+          for ( string& dir : paths) {
+            string full_path = dir + '\\' + output;
+            if (std::filesystem::exists(full_path)) {
+              std::cout << output << " is " << full_path << std::endl;
+              is_Executable = true;
+              break;
+            }
+          }
+
+        }
+      }
+
+      if (!is_builtin && !is_Executable) {
         cout << output << ": not found" << endl;
       }
     } else {
