@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <filesystem>
+#include <cstdlib>
 using namespace std;
 
 string trimInitialWhitespace(string str) {
@@ -70,7 +71,7 @@ int main()
         } 
       }
       if (!is_builtin) {
-        char* pathEnv= getenv("PATH");
+        const char* pathEnv= getenv("PATH");
         if( pathEnv != nullptr){
           string pathEnvStr(pathEnv);
           stringstream ss(pathEnvStr);
