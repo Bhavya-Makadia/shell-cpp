@@ -32,7 +32,6 @@ int main()
   {
     cout << "$ "; 
     getline(cin, input);
-    const char* pathEnv= getenv("PATH");
 
     istringstream iss(input);
     string command;
@@ -72,6 +71,7 @@ int main()
         } 
       }
       if (!is_builtin) {
+        char *pathEnv = getenv("PATH");
         if( pathEnv != nullptr){
           string pathEnvStr(pathEnv);
           stringstream ss(pathEnvStr);
