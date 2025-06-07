@@ -85,8 +85,7 @@ int main()
             }
           }       
 
-          for ( string& dir : paths) {
-            cout << dir << output << endl;
+          for ( auto& dir : paths) {
             if (is_command_executable(dir, output)) {
               std::cout << output << " is " << dir << std::endl;
               is_Executable = true;
