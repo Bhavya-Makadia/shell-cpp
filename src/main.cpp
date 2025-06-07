@@ -71,7 +71,7 @@ int main()
         } 
       }
       if (!is_builtin) {
-        char *pathEnv = getenv("PATH");
+        char *pathEnv = std::getenv("PATH");
         if( pathEnv != nullptr){
           string pathEnvStr(pathEnv);
           stringstream ss(pathEnvStr);
