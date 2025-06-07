@@ -83,7 +83,7 @@ int main()
         istringstream ss(path_str);
         string dir;
 
-        while (getline(ss, dir, ';'))
+        while (getline(ss, dir, ':'))
         {
           string full_path = dir + "/" + output;
 
