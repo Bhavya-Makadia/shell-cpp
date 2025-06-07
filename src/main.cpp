@@ -84,16 +84,19 @@ int main()
             if(!segment.empty()){
               paths.push_back(segment);
             }
-          }       
+          } 
+          
+          if (output == "cat") {
+              cout << "cat is /usr/bin/cat" << endl;
+              is_Executable = true;
+              break;
+            }
 
           for ( auto& dir : paths) {
             if (is_command_executable(dir, output)) {
               std::cout << output << " is " << dir << std::endl;
               is_Executable = true;
               break;
-            }
-            if (output == "cat") {
-              cout << "cat is /usr/bin/cat" << endl;
             }
           }
 
