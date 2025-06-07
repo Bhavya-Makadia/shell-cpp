@@ -5,6 +5,7 @@
 #include <vector>
 #include <filesystem>
 #include <cstdlib>
+#include <fstream>
 using namespace std;
 
 string trimInitialWhitespace(string str) {
@@ -20,6 +21,35 @@ bool is_command_executable(string& dir, string& output){
 
 
    return executable_file == output;
+}
+
+vector<string> split_path(const string& path) {
+    vector<string> directories;
+    stringstream ss(path);
+    string dir;
+    while (getline(ss, dir, ';')) {
+        directories.push_back(dir);
+    }
+    return directories;
+}
+
+bool is_executable(const string& path) {
+    ifstream file(path);
+    return file.good();
+}
+
+string find_command_in_path(const string& command) {
+    const char* path_env = std::getenv("PATH");
+    if (!path_env) return "";
+
+    vector<string> path_dirs = split_path(path_env);
+    for (const auto& dir : path_dirs) {
+        string full_path = dir + "/" + command;
+        if (is_executable(full_path)) {
+            return full_path;
+        }
+    }
+    return "";
 }
 
 int main()
@@ -72,34 +102,10 @@ int main()
         } 
       }
       if (!is_builtin) {
-        char *pathEnv = getenv ("PATH");
-        if( pathEnv != nullptr){
-          string pathEnvStr(pathEnv);
-          stringstream ss(pathEnvStr);
-
-          string segment;
-          vector<string> paths;
-
-          while(getline(ss, segment, ':')){
-            if(!segment.empty()){
-              paths.push_back(segment);
-            }
-          } 
-          
-          if (output == "cat") {
-              cout << "cat is /usr/bin/cat" << endl;
-              is_Executable = true;
-              break;
-            }
-
-          for ( auto& dir : paths) {
-            if (is_command_executable(dir, output)) {
-              std::cout << output << " is " << dir << std::endl;
-              is_Executable = true;
-              break;
-            }
-          }
-
+       string path = find_command_in_path(output);
+        if (!path.empty()) {
+          std::cout << command << " is " << path << std::endl;
+          is_Executable = true;
         }
       }
 
@@ -112,3 +118,4 @@ int main()
     
   }
 }
+
