@@ -11,6 +11,15 @@ string trimInitialWhitespace(string str) {
   return str;
 }
 
+bool is_command_executable(string& dir, string& output){
+  if(dir.length() < output.length()) return false;
+
+   size_t last_slash = dir.find_last_of("/\\");
+   string executable_file = dir.substr(last_slash + 1);
+
+   return executable_file == output;
+}
+
 int main()
 {
   // Flush after every std::cout / std:cerr
@@ -74,12 +83,11 @@ int main()
             if(!segment.empty()){
               paths.push_back(segment);
             }
-          }
+          }       
 
           for ( string& dir : paths) {
-            string full_path = dir + '\\' + output;
-            if (std::filesystem::exists(full_path)) {
-              std::cout << output << " is " << full_path << std::endl;
+            if (is_command_executable(dir, output)) {
+              std::cout << output << " is " << dir << std::endl;
               is_Executable = true;
               break;
             }
