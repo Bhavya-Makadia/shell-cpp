@@ -69,7 +69,7 @@ int main()
           string segment;
           vector<string> paths;
 
-          while(getline(ss, segment, ';')){
+          while(getline(ss, segment, ':')){
             if(!segment.empty()){
               paths.push_back(segment);
             }
