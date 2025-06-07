@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <cstdlib>
 #include <fstream>
+#include <unistd.h> 
 using namespace std;
 
 string trimInitialWhitespace(string str) {
@@ -102,11 +103,25 @@ int main()
         } 
       }
       if (!is_builtin) {
-       string path = find_command_in_path(output);
-        if (!path.empty()) {
-          std::cout << command << " is " << path << std::endl;
+        char* path_env = getenv("PATH");
+      if (path_env == nullptr) {
+        std::cout << output << ": not found" << std::endl;
+        continue;
+      }
+
+      std::string path_str(path_env);
+      std::istringstream ss(path_str);
+      std::string dir;
+      bool found = false;
+
+      while (std::getline(ss, dir, ':')) {
+        std::string full_path = dir+ "/" + output;
+        if (access(full_path.c_str(), X_OK) == 0) {
+          std::cout << output << " is " << full_path << std::endl;
           is_Executable = true;
+          break;
         }
+      }
       }
 
       if (!is_builtin && !is_Executable) {
