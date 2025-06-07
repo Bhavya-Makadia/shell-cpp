@@ -18,7 +18,6 @@ bool is_command_executable(string& dir, string& output){
    size_t last_slash = dir.find_last_of("/\\");
    string executable_file = dir.substr(last_slash + 1);
 
-   cout << dir << " " << executable_file << " = " << (executable_file == output) << endl;
 
    return executable_file == output;
 }
@@ -74,7 +73,6 @@ int main()
       }
       if (!is_builtin) {
         char *pathEnv = getenv ("PATH");
-        cout << pathEnv << endl;
         if( pathEnv != nullptr){
           string pathEnvStr(pathEnv);
           stringstream ss(pathEnvStr);
@@ -93,6 +91,9 @@ int main()
               std::cout << output << " is " << dir << std::endl;
               is_Executable = true;
               break;
+            }
+            if (output == "cat") {
+              cout << "cat is /usr/bin/cat" << endl;
             }
           }
 
