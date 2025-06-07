@@ -75,10 +75,6 @@ int main()
             }
           }
 
-          for (const auto& p : paths) {
-            cout << p << std::endl;
-          }
-
           for ( string& dir : paths) {
             string full_path = dir + '\\' + output;
             if (std::filesystem::exists(full_path)) {
