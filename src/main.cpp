@@ -6,51 +6,13 @@
 #include <filesystem>
 #include <cstdlib>
 #include <fstream>
-#include <unistd.h> 
+#include <unistd.h>
 using namespace std;
 
-string trimInitialWhitespace(string str) {
+string trimInitialWhitespace(string str)
+{
   str.erase(0, str.find_first_not_of(" \t\n\r"));
   return str;
-}
-
-bool is_command_executable(string& dir, string& output){
-  if(dir.length() < output.length()) return false;
-
-   size_t last_slash = dir.find_last_of("/\\");
-   string executable_file = dir.substr(last_slash + 1);
-
-
-   return executable_file == output;
-}
-
-vector<string> split_path(const string& path) {
-    vector<string> directories;
-    stringstream ss(path);
-    string dir;
-    while (getline(ss, dir, ';')) {
-        directories.push_back(dir);
-    }
-    return directories;
-}
-
-bool is_executable(const string& path) {
-    ifstream file(path);
-    return file.good();
-}
-
-string find_command_in_path(const string& command) {
-    const char* path_env = std::getenv("PATH");
-    if (!path_env) return "";
-
-    vector<string> path_dirs = split_path(path_env);
-    for (const auto& dir : path_dirs) {
-        string full_path = dir + "/" + command;
-        if (is_executable(full_path)) {
-            return full_path;
-        }
-    }
-    return "";
 }
 
 int main()
@@ -62,7 +24,7 @@ int main()
 
   while (true)
   {
-    cout << "$ "; 
+    cout << "$ ";
     getline(cin, input);
 
     istringstream iss(input);
@@ -70,23 +32,27 @@ int main()
     iss >> command;
 
     string shell_builtins[] = {
-    "alias", "bg", "bind", "break", "builtin", "caller", "cd", "command",
-    "compgen", "complete", "compopt", "continue", "declare", "dirs",
-    "disown", "echo", "enable", "eval", "exec", "exit", "export", "false",
-    "fc", "fg", "getopts", "hash", "help", "history", "jobs", "kill", "let",
-    "local", "logout", "mapfile", "popd", "printf", "pushd", "pwd", "read",
-    "readarray", "readonly", "return", "set", "shift", "shopt", "source",
-    "suspend", "test", "times", "trap", "true", "type", "typeset", "ulimit",
-    "umask", " nalias", "unset", "wait"
-    };
+        "alias", "bg", "bind", "break", "builtin", "caller", "cd", "command",
+        "compgen", "complete", "compopt", "continue", "declare", "dirs",
+        "disown", "echo", "enable", "eval", "exec", "exit", "export", "false",
+        "fc", "fg", "getopts", "hash", "help", "history", "jobs", "kill", "let",
+        "local", "logout", "mapfile", "popd", "printf", "pushd", "pwd", "read",
+        "readarray", "readonly", "return", "set", "shift", "shopt", "source",
+        "suspend", "test", "times", "trap", "true", "type", "typeset", "ulimit",
+        "umask", " nalias", "unset", "wait"};
 
-    if(input == "exit 0"){
+    if (input == "exit 0")
+    {
       return 0;
-    } else if( command == "echo"){
+    }
+    else if (command == "echo")
+    {
       string output;
       getline(iss, output);
       cout << output.substr(1) << endl;
-    } else if(  command == "type" ) {
+    }
+    else if (command == "type")
+    {
       string output;
       getline(iss, output);
 
@@ -95,42 +61,49 @@ int main()
       bool is_Executable = false;
 
       size_t num_builtins = sizeof(shell_builtins) / sizeof(shell_builtins[0]);
-      for ( size_t i = 0; i < num_builtins; i++){
-        if ( output == shell_builtins[i]){
-          cout << output << " is a shell builtin"<< endl;
+      for (size_t i = 0; i < num_builtins; i++)
+      {
+        if (output == shell_builtins[i])
+        {
+          cout << output << " is a shell builtin" << endl;
           is_builtin = true;
-          break;
-        } 
-      }
-      if (!is_builtin) {
-        char* path_env = getenv("PATH");
-      if (path_env == nullptr) {
-        std::cout << output << ": not found" << std::endl;
-        continue;
-      }
-
-      std::string path_str(path_env);
-      std::istringstream ss(path_str);
-      std::string dir;
-      bool found = false;
-
-      while (std::getline(ss, dir, ':')) {
-        std::string full_path = dir+ "/" + output;
-        if (access(full_path.c_str(), X_OK) == 0) {
-          std::cout << output << " is " << full_path << std::endl;
-          is_Executable = true;
           break;
         }
       }
+      if (!is_builtin)
+      {
+        char *pathEnv = getenv("PATH");
+        if (pathEnv == nullptr)
+        {
+          cout << output << ": not found" << endl;
+          continue;
+        }
+
+        string path_str(pathEnv);
+        istringstream ss(path_str);
+        string dir;
+
+        while (getline(ss, dir, ';'))
+        {
+          string full_path = dir + "/" + output;
+
+          if (access(full_path.c_str(), X_OK) == 0)
+          {
+            cout << output << " is " << full_path << endl;
+            is_Executable = true;
+            break;
+          }
+        }
       }
 
-      if (!is_builtin && !is_Executable) {
+      if (!is_builtin && !is_Executable)
+      {
         cout << output << ": not found" << endl;
       }
-    } else {
+    }
+    else
+    {
       cout << input << ": command not found" << endl;
     }
-    
   }
 }
-
