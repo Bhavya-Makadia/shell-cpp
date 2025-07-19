@@ -96,12 +96,10 @@ int main()
     {
       string echoInput = input.substr(5);
       size_t redirect_pos = echoInput.find('>');
-      cout << redirect_pos << redirect_pos - 2 << echoInput.find("2>") << endl;
       if (redirect_pos != string::npos)
       {
         string path;
         string raw;
-        cout << echoInput.substr(redirect_pos-1, 2) << endl;
 if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "2>") {
         path = echoInput.substr(redirect_pos+1);
         raw = echoInput.substr(0, redirect_pos-2);
@@ -113,6 +111,7 @@ if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "2>") {
             path = path.substr(0, path.size() - 1);
         }
         string echoOutput = handleQuote(raw);
+        cerr << echoOutput << endl;
         ofstream file(path);
         file << echoOutput << endl;
         file.close();
