@@ -7,8 +7,8 @@
 
 using namespace std;
 
-string find_executable_path(std::string command);
-
+string find_executable_path(string command);
+string extractExecutable(string& input);
 
 int main() {
   // Flush after every std::cout / std:cerr
@@ -82,6 +82,9 @@ int main() {
   cout << "$ ";
 
   while (getline(cin, input)) {
+
+    string exe = extractExecutable(input);
+
     if (input == "exit 0") {
       exit(0);
     } else if (input.compare(0, 4, "echo") == 0) {
@@ -129,6 +132,8 @@ int main() {
       }
     } else if (find_executable_path(input.substr(0, input.find(" "))) != "") {
       system(input.c_str());
+    } else if(find_executable_path(exe) != ""){
+      system(input.c_str());
     } else if (input.compare(0, 3, "pwd") == 0) {
       filesystem::path curr_dir = filesystem::current_path();
       cout<<curr_dir.string()<<endl;
@@ -148,7 +153,33 @@ int main() {
   }
 }
 
-string find_executable_path(std::string command) {
+string extractExecutable(string& input){
+    size_t i = 0;
+    while(i < input.size() && isspace(input[i])){
+        i++;
+    }
+    
+    if(i == input.size()){
+        return "";
+    }
+    
+    char quoteChar = '\0';
+    string exe;
+    if(input[i] == '\'' || input[i] == '"'){
+        quoteChar = input[i++];
+        while (i < input.size() && input[i] != quoteChar) {
+            exe += input[i++];
+        }
+        if (i < input.size() && input[i] == quoteChar) i++;
+    } else {
+        while (i < input.size() && !isspace(input[i])) {
+            exe += input[i++];
+        }
+    }
+    return exe;
+}
+
+string find_executable_path(string command) {
   char *path = getenv("PATH");
   char *path_copy = strdup(path);
   char *token = strtok(path_copy, ":");
