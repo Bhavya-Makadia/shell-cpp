@@ -112,6 +112,8 @@ if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "2>") {
         }
         string echoOutput = handleQuote(raw);
         ofstream err(path);
+        cout << echoInput;
+        err << "";
     if (err.is_open()) {
         err.close();
     }
