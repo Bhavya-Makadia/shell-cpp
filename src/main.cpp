@@ -97,7 +97,9 @@ int main() {
         if (isbackSlash){
           echoOutput += c;
           isbackSlash = false;
-          prevSpace = false;
+          prevSpace = (c == ' ');
+        } else if (c == '\\' && !isSingleQoute) {
+          isbackSlash = true;
         } else if (c == '\'' && !isDoubleQoute) {
           isSingleQoute = !isSingleQoute;
         } else if (c == '"' && !isSingleQoute) {
@@ -108,7 +110,7 @@ int main() {
           echoOutput += c;
           prevSpace = true;
         } else {
-          prevSpace = (c == ' ');
+          prevSpace = false;
           echoOutput += c;
         }
       }
