@@ -4,11 +4,13 @@
 #include <unistd.h>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 
 using namespace std;
 
 string find_executable_path(string command);
 string extractExecutable(string& input);
+string handleQuote(string echoInput);
 
 int main() {
   // Flush after every std::cout / std:cerr
@@ -89,36 +91,26 @@ int main() {
       exit(0);
     } else if (input.compare(0, 4, "echo") == 0) {
       string echoInput = input.substr(5);
-      string echoOutput;
+      size_t redirect_pos = echoInput.find('>');
+      if (redirect_pos != string::npos) {
+        string path = echoInput.substr(redirect_pos+2);
 
-      bool isSingleQoute = false;
-      bool isDoubleQoute = false;
-      bool prevSpace = false;
-      bool isbackSlash = false;
-
-      for (char c : echoInput) {
-        if (isbackSlash){
-          echoOutput += c;
-          isbackSlash = false;
-          prevSpace = (c == ' ');
-        } else if (c == '\\' && !isSingleQoute) {
-          isbackSlash = true;
-        } else if (c == '\'' && !isDoubleQoute) {
-          isSingleQoute = !isSingleQoute;
-        } else if (c == '"' && !isSingleQoute) {
-          isDoubleQoute = !isDoubleQoute;
-        } else if (!isSingleQoute && !isDoubleQoute && (c == ' ' && prevSpace)){
-          continue;
-        } else if (!isSingleQoute && !isDoubleQoute && c == ' ') {
-          echoOutput += c;
-          prevSpace = true;
-        } else {
-          prevSpace = false;
-          echoOutput += c;
+        fstream file(path, ios::out);
+        if (echoInput[redirect_pos-1] == '1') {
+          redirect_pos--;
         }
+        string raw = echoInput.substr(0, redirect_pos);
+        string echoOutput = handleQuote(raw);
+        file << echoOutput << std::endl;
+        file.close();
+      } else {
+        string echoOutput = handleQuote(echoInput);
+        cout << echoOutput << endl;
       }
+      
 
-      cout << echoOutput << endl;
+
+     
     } else if (input.compare(0, 4, "type") == 0) {
       string command = input.substr(5);
       string executable_path = find_executable_path(command);
@@ -151,6 +143,37 @@ int main() {
 
     cout << "$ ";
   }
+}
+
+string handleQuote(string echoInput){
+      string output;
+      bool isSingleQoute = false;
+      bool isDoubleQoute = false;
+      bool prevSpace = false;
+      bool isbackSlash = false;
+
+      for (char c : echoInput) {
+        if (isbackSlash){
+          output += c;
+          isbackSlash = false;
+          prevSpace = (c == ' ');
+        } else if (c == '\\' && !isSingleQoute) {
+          isbackSlash = true;
+        } else if (c == '\'' && !isDoubleQoute) {
+          isSingleQoute = !isSingleQoute;
+        } else if (c == '"' && !isSingleQoute) {
+          isDoubleQoute = !isDoubleQoute;
+        } else if (!isSingleQoute && !isDoubleQoute && (c == ' ' && prevSpace)){
+          continue;
+        } else if (!isSingleQoute && !isDoubleQoute && c == ' ') {
+          output += c;
+          prevSpace = true;
+        } else {
+          prevSpace = false;
+          output += c;
+        }
+      }
+    return output;
 }
 
 string extractExecutable(string& input){
