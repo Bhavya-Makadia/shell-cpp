@@ -3,57 +3,62 @@
 #include <map>
 #include <unistd.h>
 #include <cstring>
+#include <filesystem>
 
-std::string find_executable_path(std::string command);
+using namespace std;
+
+string find_executable_path(std::string command);
 
 
 int main() {
   // Flush after every std::cout / std:cerr
-  std::cout << std::unitbuf;
-  std::cerr << std::unitbuf;
+  cout << std::unitbuf;
+  cerr << std::unitbuf;
 
-  std::string input;
+  string input;
 
-  std::map<std::string, bool> commands = {
+  map<std::string, bool> commands = {
     {"echo", true},
     {"exit", true},
     {"type", true}
   };
 
-  std::cout << "$ ";
+  cout << "$ ";
 
-  while (std::getline(std::cin, input)) {
+  while (getline(cin, input)) {
     if (input == "exit 0") {
       exit(0);
     } else if (input.compare(0, 4, "echo") == 0) {
-      std::cout << input.substr(5) << std::endl;
+      cout << input.substr(5) << endl;
     } else if (input.compare(0, 4, "type") == 0) {
-      std::string command = input.substr(5);
-      std::string executable_path = find_executable_path(command);
+      string command = input.substr(5);
+      string executable_path = find_executable_path(command);
       
       if (commands.find(command) != commands.end()) {
-        std::cout << command << " is a shell builtin" << std::endl;
+        cout << command << " is a shell builtin" << endl;
       } else if(executable_path != "") {
-        std::cout << command << " is " << executable_path << std::endl;
+        cout << command << " is " << executable_path << endl;
       } else {
-        std::cout << command << ": not found" << std::endl;
+        cout << command << ": not found" << endl;
       }
     } else if (find_executable_path(input.substr(0, input.find(" "))) != "") {
-      std::system(input.c_str());
+      system(input.c_str());
+    } else if (input.compare(0, 3, "pwd") == 0) {
+      cout << filesystem::current_path() << endl;
     } else {
-      std::cout << input << ": command not found" << std::endl;
+      cout << input << ": command not found" << endl;
     }
 
-    std::cout << "$ ";
+    cout << "$ ";
   }
 }
 
-std::string find_executable_path(std::string command) {
+string find_executable_path(std::string command) {
   char *path = getenv("PATH");
   char *path_copy = strdup(path);
   char *token = strtok(path_copy, ":");
   while (token != NULL) {
-    std::string curPath = token;
+    string curPath = token;
     curPath += "/" + command;
     if (access(curPath.c_str(), X_OK) == 0) {
       free(path_copy);
