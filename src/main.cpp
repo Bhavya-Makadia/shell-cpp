@@ -104,6 +104,9 @@ int main() {
       cout<<curr_dir.string()<<endl;
     } else if(input.compare(0, 2, "cd") == 0) {
       string path = input.substr(3);
+      if(path[0] == '~'){
+        path = string(getenv("HOME"));
+      }
       if(chdir(path.c_str()) !=0){
         cout << "cd: " << path << ": No such file or directory" << endl;
       }
