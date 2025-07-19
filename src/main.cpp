@@ -88,14 +88,20 @@ int main() {
       string echoInput = input.substr(5);
       string echoOutput;
 
-      bool isQoute = false;
+      bool isSingleQoute = false;
+      bool isDoubleQoute = false;
       bool prevSpace = false;
 
       for (char c : echoInput) {
-        if (c == '\'') {
-            isQoute = !isQoute;
-        } else if (!isQoute && (c == ' ' && prevSpace)){
+        if (c == '\'' && !isDoubleQoute) {
+          isSingleQoute = !isSingleQoute;
+        } else if (c == '"' && !isSingleQoute) {
+          isDoubleQoute = !isDoubleQoute;
+        } else if (!isSingleQoute && !isDoubleQoute && (c == ' ' && prevSpace)){
           continue;
+        } else if (!isSingleQoute && !isDoubleQoute && c == ' ') {
+          echoOutput += c;
+          prevSpace = true;
         } else {
           prevSpace = (c == ' ');
           echoOutput += c;
