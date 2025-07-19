@@ -91,9 +91,14 @@ int main() {
       bool isSingleQoute = false;
       bool isDoubleQoute = false;
       bool prevSpace = false;
+      bool isbackSlash = false;
 
       for (char c : echoInput) {
-        if (c == '\'' && !isDoubleQoute) {
+        if (isbackSlash){
+          echoOutput += c;
+          isbackSlash = false;
+          prevSpace = false;
+        } else if (c == '\'' && !isDoubleQoute) {
           isSingleQoute = !isSingleQoute;
         } else if (c == '"' && !isSingleQoute) {
           isDoubleQoute = !isDoubleQoute;
