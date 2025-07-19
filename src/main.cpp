@@ -111,16 +111,17 @@ if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "2>") {
             path = path.substr(0, path.size() - 1);
         }
         string echoOutput = handleQuote(raw);
-        ofstream file(path);
-        file << echoOutput << endl;
-        file.close();
+        ofstream err(path);
+    if (err.is_open()) {
+        err.close();
+    }
     } else {
         if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "1>") {
             path = echoInput.substr(redirect_pos+1);
             raw = echoInput.substr(0, redirect_pos-2);
         } else {
             path = echoInput.substr(redirect_pos+1);
-            raw = echoInput.substr(0, redirect_pos);
+            raw = echoInput.substr(0, redirect_pos-1);
         }
         // remove leading and trailing spaces from path
         while (path.size() > 0 && path[0] == ' ') {
