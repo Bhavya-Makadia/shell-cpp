@@ -100,7 +100,8 @@ int main() {
     } else if (find_executable_path(input.substr(0, input.find(" "))) != "") {
       system(input.c_str());
     } else if (input.compare(0, 3, "pwd") == 0) {
-      cout << filesystem::current_path() << endl;
+      filesystem::path curr_dir = filesystem::current_path();
+      cout<<curr_dir.string()<<endl;
     } else {
       cout << input << ": command not found" << endl;
     }
