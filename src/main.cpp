@@ -12,16 +12,72 @@ string find_executable_path(std::string command);
 
 int main() {
   // Flush after every std::cout / std:cerr
-  cout << std::unitbuf;
-  cerr << std::unitbuf;
+  cout << unitbuf;
+  cerr << unitbuf;
 
   string input;
 
-  map<std::string, bool> commands = {
+  map<string, bool> commands = {
+    {"alias", true},
+    {"bg", true},
+    {"bind", true},
+    {"break", true},
+    {"builtin", true},
+    {"caller", true},
+    {"cd", true},
+    {"command", true},
+    {"compgen", true},
+    {"complete", true},
+    {"compopt", true},
+    {"continue", true},
+    {"declare", true},
+    {"dirs", true},
+    {"disown", true},
     {"echo", true},
+    {"enable", true},
+    {"eval", true},
+    {"exec", true},
     {"exit", true},
-    {"type", true}
-  };
+    {"export", true},
+    {"false", true},
+    {"fc", true},
+    {"std::string", true},
+    {"fg", true},
+    {"getopts", true},
+    {"hash", true},
+    {"help", true},
+    {"history", true},
+    {"jobs", true},
+    {"kill", true},
+    {"let", true},
+    {"local", true},
+    {"logout", true},
+    {"mapfile", true},
+    {"popd", true},
+    {"printf", true},
+    {"pushd", true},
+    {"pwd", true},
+    {"read", true},
+    {"readarray", true},
+    {"readonly", true},
+    {"return", true},
+    {"set", true},
+    {"shift", true},
+    {"shopt", true},
+    {"source", true},
+    {"suspend", true},
+    {"test", true},
+    {"times", true},
+    {"trap", true},
+    {"true", true},
+    {"type", true},
+    {"typeset", true},
+    {"ulimit", true},
+    {"umask", true},
+    {"unalias", true},
+    {"unset", true},
+    {"wait", true}
+};
 
   cout << "$ ";
 
