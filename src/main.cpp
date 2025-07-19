@@ -102,6 +102,11 @@ int main() {
     } else if (input.compare(0, 3, "pwd") == 0) {
       filesystem::path curr_dir = filesystem::current_path();
       cout<<curr_dir.string()<<endl;
+    } else if(input.compare(0, 2, "cd") == 0) {
+      string path = input.substr(3);
+      if(chdir(path.c_str()) !=0){
+        cout << "cd: " << path << ": No such file or directory" << endl;
+      }
     } else {
       cout << input << ": command not found" << endl;
     }
