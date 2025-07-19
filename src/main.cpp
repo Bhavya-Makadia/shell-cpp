@@ -85,7 +85,24 @@ int main() {
     if (input == "exit 0") {
       exit(0);
     } else if (input.compare(0, 4, "echo") == 0) {
-      cout << input.substr(5) << endl;
+      string echoInput = input.substr(5);
+      string echoOutput;
+
+      bool isQoute = false;
+      bool prevSpace = false;
+
+      for (char c : echoInput) {
+        if (c == '\'') {
+            isQoute = !isQoute;
+        } else if (!isQoute && (c == ' ' && prevSpace)){
+          continue;
+        } else {
+          prevSpace = (c == ' ');
+          echoOutput += c;
+        }
+      }
+
+      cout << echoOutput << endl;
     } else if (input.compare(0, 4, "type") == 0) {
       string command = input.substr(5);
       string executable_path = find_executable_path(command);
