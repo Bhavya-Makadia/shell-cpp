@@ -100,8 +100,7 @@ int main()
       {
         string path;
         string raw;
-        cout << redirect_pos << ' ' << redirect_pos + 1 << ' ' << redirect_pos - 1 << endl;
-        cout << echoInput.substr(redirect_pos, 2) << endl;
+        
         if (redirect_pos >= 2 && echoInput.substr(redirect_pos, 2) == ">>")
         {
           if (redirect_pos >= 2 && echoInput.substr(redirect_pos - 1, 3) == "2>>")
@@ -148,7 +147,6 @@ int main()
             }
             
             string echoOutput = handleQuote(raw);
-            cout << path << ' ' << raw << ' ' << echoOutput << endl;
             ofstream file(path, ios::app);
             file << echoOutput << endl;
             file.close();
