@@ -117,7 +117,7 @@ int main()
           }
           freopen(path.c_str(), "w", stderr);
           string echoOutput = handleQuote(raw);
-          cerr << echoOutput << endl;
+          fprintf(stderr, "%s\n", echoOutput.c_str());
         }
         else
         {
