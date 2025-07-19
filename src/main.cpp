@@ -96,47 +96,46 @@ int main()
     {
       string echoInput = input.substr(5);
       size_t redirect_pos = echoInput.find('>');
+      cout << redirect_pos << redirect_pos - 2 << echoInput.find("2>") << endl;
       if (redirect_pos != string::npos)
       {
         string path;
         string raw;
-
-        // Check if it's 2> or >
-        if (redirect_pos >= 2 && echoInput[redirect_pos - 2] == '2' && echoInput[redirect_pos - 1] == ' ')
-        {
-          path = echoInput.substr(redirect_pos + 1);
-          raw = echoInput.substr(0, redirect_pos - 2);
-          // remove leading and trailing spaces from path
-          while (path.size() > 0 && path[0] == ' ')
-          {
+        cout << echoInput.substr(redirect_pos-1, 2) << endl;
+if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "2>") {
+        path = echoInput.substr(redirect_pos+1);
+        raw = echoInput.substr(0, redirect_pos-2);
+        // remove leading and trailing spaces from path
+        while (path.size() > 0 && path[0] == ' ') {
             path = path.substr(1);
-          }
-          while (path.size() > 0 && path[path.size() - 1] == ' ')
-          {
-            path = path.substr(0, path.size() - 1);
-          }
-          freopen(path.c_str(), "w", stderr);
-          string echoOutput = handleQuote(raw);
-          fprintf(stderr, "%s\n", echoOutput.c_str());
         }
-        else
-        {
-          path = echoInput.substr(redirect_pos + 1);
-          raw = echoInput.substr(0, redirect_pos);
-          // remove leading and trailing spaces from path
-          while (path.size() > 0 && path[0] == ' ')
-          {
+        while (path.size() > 0 && path[path.size() - 1] == ' ') {
+            path = path.substr(0, path.size() - 1);
+        }
+        string echoOutput = handleQuote(raw);
+        ofstream file(path);
+        file << echoOutput << endl;
+        file.close();
+    } else {
+        if (redirect_pos >= 2 && echoInput.substr(redirect_pos-1, 2) == "1>") {
+            path = echoInput.substr(redirect_pos+1);
+            raw = echoInput.substr(0, redirect_pos-2);
+        } else {
+            path = echoInput.substr(redirect_pos+1);
+            raw = echoInput.substr(0, redirect_pos);
+        }
+        // remove leading and trailing spaces from path
+        while (path.size() > 0 && path[0] == ' ') {
             path = path.substr(1);
-          }
-          while (path.size() > 0 && path[path.size() - 1] == ' ')
-          {
-            path = path.substr(0, path.size() - 1);
-          }
-          fstream file(path, ios::out);
-          string echoOutput = handleQuote(raw);
-          file << echoOutput << endl;
-          file.close();
         }
+        while (path.size() > 0 && path[path.size() - 1] == ' ') {
+            path = path.substr(0, path.size() - 1);
+        }
+        string echoOutput = handleQuote(raw);
+        ofstream file(path);
+        file << echoOutput << endl;
+        file.close();
+    }
       }
       else
       {
