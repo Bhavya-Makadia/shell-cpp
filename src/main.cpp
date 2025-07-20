@@ -17,10 +17,14 @@ string handleQuote(string echoInput);
 char* command_generator(const char* text, int state);
 char** command_completion(const char* text, int start, int end);
 
+set<string> commands = {"exit", "echo", "type", "pwd", "cd"};
+
 int main()
 {
   rl_attempted_completion_function = command_completion;
   // Flush after every std::cout / std:cerr
+
+  while(1){
   cout << unitbuf;
   cerr << unitbuf;
 
@@ -87,10 +91,10 @@ int main()
       {"unset", true},
       {"wait", true}};
 
-  cout << "$ ";
-
-  while (getline(cin, input))
-  {
+   char* input_cstr = readline("$ ");
+    input = input_cstr;
+    free(input_cstr);
+  
 
     string exe = extractExecutable(input);
 
