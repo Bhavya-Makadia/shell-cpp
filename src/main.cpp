@@ -91,10 +91,13 @@ int main()
       {"unset", true},
       {"wait", true}};
 
-   char* input_cstr = readline("$ ");
+    char* input_cstr = readline("$ ");
     input = input_cstr;
     free(input_cstr);
   
+    if (input.empty()) { // Check for empty input
+      continue;
+    }
 
     string exe = extractExecutable(input);
 
