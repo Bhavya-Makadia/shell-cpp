@@ -92,6 +92,9 @@ int main()
       {"wait", true}};
 
     char* input_cstr = readline("$ ");
+    if (!input_cstr) { // Check for EOF or error
+      break;
+    }
     input = input_cstr;
     free(input_cstr);
   
@@ -270,7 +273,7 @@ int main()
       cout << input << ": command not found" << endl;
     }
 
-    cout << "$ ";
+
   }
 }
 
