@@ -5,15 +5,21 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <set>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 using namespace std;
 
 string find_executable_path(string command);
 string extractExecutable(string &input);
 string handleQuote(string echoInput);
+char* command_generator(const char* text, int state);
+char** command_completion(const char* text, int start, int end);
 
 int main()
 {
+  rl_attempted_completion_function = command_completion;
   // Flush after every std::cout / std:cerr
   cout << unitbuf;
   cerr << unitbuf;
@@ -259,6 +265,32 @@ int main()
 
     cout << "$ ";
   }
+}
+
+char* command_generator(const char* text, int state) {
+  static set<string>::iterator it;
+  static string prefix;
+
+  if (state == 0) {
+    it = commands.begin();  // reset on first call
+    prefix = text;
+  }
+
+  while (it != commands.end()) {
+    const string& cmd = *it;
+    ++it;
+
+    if (cmd.find(prefix) == 0) {
+      return strdup(cmd.c_str());  // must return malloc'ed C string
+    }
+  }
+
+  return nullptr;
+}
+
+char** command_completion(const char* text, int start, int end) {
+  rl_attempted_completion_over = 1; // prevent readline from filename completion
+  return rl_completion_matches(text, command_generator);
 }
 
 string handleQuote(string echoInput)
