@@ -277,25 +277,59 @@ int main()
   }
 }
 
-char* command_generator(const char* text, int state) {
-  static set<string>::iterator it;
-  static string prefix;
-
-  if (state == 0) {
-    it = commands.begin();  // reset on first call
-    prefix = text;
-  }
-
-  while (it != commands.end()) {
-    const string& cmd = *it;
-    ++it;
-
-    if (cmd.find(prefix) == 0) {
-      return strdup(cmd.c_str());  // must return malloc'ed C string
+std::set<std::string> get_executables_from_path() {
+    std::set<std::string> executables;
+    char* path = getenv("PATH");
+    char* path_copy = strdup(path);
+    char* token = strtok(path_copy, ":");
+    while (token != NULL) {
+        std::string cur_path = token;
+        for (const auto& entry : std::filesystem::directory_iterator(cur_path)) {
+            if (entry.is_regular_file() && (entry.status().permissions() & std::filesystem::perms::owner_exec) != std::filesystem::perms::none) {
+                executables.insert(entry.path().filename().string());
+            }
+        }
+        token = strtok(NULL, ":");
     }
-  }
+    free(path_copy);
+    return executables;
+}
 
-  return nullptr;
+std::set<std::string> executables = get_executables_from_path();
+char* command_generator(const char* text, int state) {
+   static std::set<std::string>::iterator it_builtin;
+    static std::set<std::string>::iterator it_executable;
+    static std::string prefix;
+
+    if (state == 0) {
+        it_builtin = commands.begin();
+        it_executable = executables.lower_bound(text);
+        prefix = text;
+    }
+
+    // Check built-in commands
+    while (it_builtin != commands.end()) {
+        const std::string& cmd = *it_builtin;
+        ++it_builtin;
+
+        if (cmd.find(prefix) == 0) {
+            return strdup(cmd.c_str());
+        }
+    }
+
+    // Check executables
+    while (it_executable != executables.end()) {
+        const std::string& cmd = *it_executable;
+        ++it_executable;
+
+        if (cmd.find(prefix) == 0) {
+            return strdup(cmd.c_str());
+        } else {
+            break;  // Since executables are sorted, we can stop once we find a command that doesn't match the prefix
+        }
+    }
+
+    return nullptr;
 }
 
 char** command_completion(const char* text, int start, int end) {
