@@ -274,11 +274,22 @@ int main()
       }
     } else if (input.compare(0, 7, "history") == 0){
       size_t space = input.find(' ');
+      if (space != string::npos && input.substr(space + 1, 2) == "-r") {
+        size_t file_space = input.find(' ', space + 1);
+        if (file_space != string::npos) {
+            string history_file = input.substr(file_space + 1);
+            clear_history(); // Clear current history
+            read_history(history_file.c_str()); // Read history from file
+        } else {
+            cout << "history: -r requires a file name" << endl;
+        }
+    }  else {
       string numStr = (space == string::npos) ? "" : input.substr(space + 1);
       int num = numStr.empty() ? commandHistory.size() : stoi(numStr);
       for (int i = commandHistory.size() - num; i < commandHistory.size(); i++){
         cout << i + 1 << " " << commandHistory[i] << endl;
       }
+    }
     } else
     {
       cout << input << ": command not found" << endl;
