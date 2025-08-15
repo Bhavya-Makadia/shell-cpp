@@ -601,51 +601,49 @@ void execute_pipeline(string input) {
 
     // Launch all commands
     for (int i = 0; i < n; i++) {
-    pids[i] = fork();
-    if (pids[i] == 0) {
-        // Input redirection: from read end of previous pipe
-        if (i > 0) {
-            if (dup2(pipes[i - 1], STDIN_FILENO) == -1) {
+        pids[i] = fork();
+        if (pids[i] == -1) {
+            perror("fork");
+            exit(1);
+        }
+        if (pids[i] == 0) {
+            // Input redirection: from read end of previous pipe
+            if (i > 0) {
+              if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
                 perror("dup2 input");
                 exit(1);
+              }
             }
-        }
-        // Output redirection: to write end of current pipe
-        if (i < n - 1) {
-            if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
+            // Output redirection: to write end of current pipe
+            if (i < n - 1) {
+              if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
                 perror("dup2 output");
                 exit(1);
+              }
             }
+            // Close all pipe fds in child
+            for (int j = 0; j < n - 1; j++) {
+              close(pipes[j][0]);
+              close(pipes[j][1]);
+            }
+            // Execute command
+            run_command(cmds[i]);
+            exit(0); // Safety: child must exit after exec
         }
-        // Close all pipe fds in child
-        for (int j = 0; j < n - 1; j++) {
-            close(pipes[j][0]);
-            close(pipes[j]);
-        }
-        run_command(cmds[i]);
-        exit(0);
     }
-}
-
 
     // Parent closes all pipes
     for (int i = 0; i < n - 1; i++) {
         close(pipes[i][0]);
-        close(pipes[i][1]);
+        close(pipes[i]);
     }
 
     // Wait for all children
     for (int i = 0; i < n; i++) {
         waitpid(pids[i], nullptr, 0);
     }
-    
-    // string output;
-    // char buffer[1024];
-    // while (read(STDIN_FILENO, buffer, 1024) > 0) {
-    //     output += buffer;
-    // }
-    // cout << output;
 }
+
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
     if (input_fd != STDIN_FILENO) {
