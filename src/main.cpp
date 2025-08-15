@@ -9,6 +9,10 @@
 #include <set>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/types.h>   // pid_t
+#include <sys/wait.h>    // waitpid
+#include <unistd.h>
+#include <sstream>
 
 using namespace std;
 
