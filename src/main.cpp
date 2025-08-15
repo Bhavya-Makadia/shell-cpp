@@ -123,6 +123,15 @@ int main()
     commandHistory.push_back(input);
     if (input == "exit 0")
     {
+      if (histfile != NULL) {
+        ofstream file(histfile, ios_base::app);
+        if (file.is_open()) {
+            for (int i = last_appended_index; i < commandHistory.size(); i++) {
+                file << commandHistory[i] << endl;
+            }
+            file.close();
+        }
+    }
       exit(0);
     }
     else if (input.compare(0, 4, "echo") == 0)
