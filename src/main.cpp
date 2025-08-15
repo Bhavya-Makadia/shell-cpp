@@ -13,6 +13,7 @@
 #include <sys/wait.h>    // waitpid
 #include <unistd.h>
 #include <sstream>
+#include <iterator>
 
 using namespace std;
 void run_command(const string &cmd);
@@ -535,6 +536,7 @@ string find_executable_path(string command)
 }
 
 void run_command(const string &cmd) {
+    // Built-in handling as before...
     if (cmd.rfind("echo", 0) == 0) {
         string echoOutput = handleQuote(cmd.substr(5));
         cout << echoOutput << endl;
@@ -559,22 +561,27 @@ void run_command(const string &cmd) {
     }
 
     // Tokenize command
-    stringstream ss(cmd);
-    vector<char*> args;
-    string arg;
-    while (ss >> arg) {
-        char *cstr = new char[arg.size() + 1];
-        strcpy(cstr, arg.c_str());
-        args.push_back(cstr);
-    }
-    args.push_back(nullptr);
+    istringstream iss(cmd);
+    vector<string> tokens{istream_iterator<string>{iss}, istream_iterator<string>{}};
+    if (tokens.empty()) exit(0);
 
-    // *** Add debug print ***
-    cerr << "execvp: [" << args;
-    for(int i = 1; args[i]; ++i) cerr << "," << args[i];
+    // Convert to char* array for execvp
+    vector<char*> argv;
+    for (auto& token : tokens) argv.push_back(const_cast<char*>(token.c_str()));
+    argv.push_back(nullptr);
+
+    // Print arguments for debugging (optional)
+    cerr << "execvp: [";
+    for (size_t i = 0; i < argv.size() - 1; ++i) {
+        if (i > 0) cerr << ", ";
+        cerr << argv[i];
+    }
     cerr << "]" << endl;
 
-    execvp(args, args.data());
+    // Proper execvp call
+    execvp(argv[0], argv.data());
+
+    // If exec fails
     perror("execvp");
     exit(1);
 }
