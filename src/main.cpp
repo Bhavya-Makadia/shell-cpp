@@ -619,33 +619,21 @@ void execute_pipeline(string input) {
         } 
         else if (pid == 0) {  // Child process
             // If not the first command, redirect stdin to read end of previous pipe
-            if (i > 0) {
-                if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
-                    perror("dup2 input");
-                    exit(1);
-                }
-            }
-            // If not the last command, redirect stdout to write end of current pipe
-            if (i < n - 1) {
-                if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
-                    perror("dup2 output");
-                    exit(1);
-                }
-            }
+             int in_fd = (i > 0) ? pipes[i - 1][0] : STDIN_FILENO;
+              int out_fd = (i < n - 1) ? pipes[i][1] : STDOUT_FILENO;
 
-            // Close all pipe file descriptors in child to prevent FD leaks
-            for (int j = 0; j < n - 1; ++j) {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
-            }
+              // Close unused ends before executing
+              for (int j = 0; j < n - 1; ++j) {
+                  if (pipes[j][0] != in_fd) close(pipes[j][0]);
+                  if (pipes[j][1] != out_fd) close(pipes[j][1]);
+              }
 
-            // Execute the command
-            run_command(cmds[i]);
-            exit(127);  // exec failed fallback
-        }
-        // In parent, save child's pid
-        pids[i] = pid;
-    }
+              run_builtin_or_exec(cmds[i], out_fd, in_fd);
+              exit(0);  // exec failed fallback
+                  }
+                  // In parent, save child's pid
+                  pids[i] = pid;
+              }
 
     // Parent closes all pipe file descriptors
     for (int i = 0; i < n - 1; ++i) {
