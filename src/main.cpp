@@ -28,7 +28,7 @@ string handleQuote(string echoInput);
 char* command_generator(const char* text, int state);
 char** command_completion(const char* text, int start, int end);
 
-set<string> commandsBuiltin = {"exit", "echo", "type", "pwd", "cd"};
+set<string> commands = {"exit", "echo", "type", "pwd", "cd"};
 
 int main()
 {
@@ -55,7 +55,7 @@ int main()
 
   string input;
 
-  map<string, bool> commands = {
+  map<string, bool> commandsBuiltin = {
       {"alias", true},
       {"bg", true},
       {"bind", true},
