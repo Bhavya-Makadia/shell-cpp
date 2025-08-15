@@ -603,23 +603,30 @@ void execute_pipeline(string input) {
     for (int i = 0; i < n; i++) {
     pids[i] = fork();
     if (pids[i] == 0) {
-        // Input redirection
+        // Input redirection: from read end of previous pipe
         if (i > 0) {
-            dup2(pipes[i - 1], STDIN_FILENO);
+            if (dup2(pipes[i - 1], STDIN_FILENO) == -1) {
+                perror("dup2 input");
+                exit(1);
+            }
         }
-        // Output redirection
+        // Output redirection: to write end of current pipe
         if (i < n - 1) {
-            dup2(pipes[i], STDOUT_FILENO);
+            if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
+                perror("dup2 output");
+                exit(1);
+            }
         }
-        // Close all pipe fds (important!)
+        // Close all pipe fds in child
         for (int j = 0; j < n - 1; j++) {
-            close(pipes[j]);
+            close(pipes[j][0]);
             close(pipes[j]);
         }
         run_command(cmds[i]);
         exit(0);
     }
 }
+
 
     // Parent closes all pipes
     for (int i = 0; i < n - 1; i++) {
