@@ -275,14 +275,18 @@ int main()
     } else if (input.compare(0, 7, "history") == 0){
       size_t space = input.find(' ');
       if (space != string::npos && input.substr(space + 1, 2) == "-w") {
-        size_t file_space = input.find(' ', space and + 1);
+        size_t file_space = input.find(' ', space + 1);
         if (file_space != string::npos) {
             string history_file = input.substr(file_space + 1);
             ofstream file(history_file);
+            if (file.is_open()) {
                 for (const auto& command : commandHistory) {
                     file << command << endl;
                 }
                 file.close();
+            } else {
+                cout << "Unable to open history file" << endl;
+            }
         } else {
             cout << "history: -w requires a file name" << endl;
         }
