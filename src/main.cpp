@@ -20,6 +20,7 @@ void run_command(const string &cmd);
 vector<std::string> split_by_pipe(const std::string& str);
 vector<char*> parse_args(const std::string& cmd);
 void execute_pipeline(const std::string &input);
+bool run_builtin(const std::vector<std::string>& args);
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd);
 string find_executable_path(string command);
 string extractExecutable(string &input);
@@ -674,6 +675,10 @@ void execute_pipeline(const std::string &input) {
             for (auto &a : args) argv.push_back(&a[0]);
             argv.push_back(nullptr);
 
+            if (run_builtin(args)) {
+              exit(0); // builtin done, exit child
+            }
+
             if (!argv.empty()) {
                 execvp(argv[0], argv.data());
                 perror(argv[0]); // execvp only returns on error
@@ -691,6 +696,41 @@ void execute_pipeline(const std::string &input) {
         wait(&status);
     }
 }
+
+bool run_builtin(const std::vector<std::string>& args) {
+    if (args.empty()) return true;
+
+    std::string cmd = args[0];
+    if (cmd == "exit") {
+        // In a child process, just exit
+        exit(0);
+    }
+    else if (cmd == "pwd") {
+        std::cout << std::filesystem::current_path().string() << std::endl;
+        return true;
+    }
+    else if (cmd == "type") {
+        if (args.size() < 2) {
+            std::cerr << "type: missing operand" << std::endl;
+            return true;
+        }
+        std::string target = args[1];
+        extern std::map<std::string,bool> commands; // your builtin map
+        if (commands.find(target) != commands.end()) {
+            std::cout << target << " is a shell builtin" << std::endl;
+        } else {
+            std::string executable_path = find_executable_path(target);
+            if (!executable_path.empty()) {
+                std::cout << target << " is " << executable_path << std::endl;
+            } else {
+                std::cout << target << ": not found" << std::endl;
+            }
+        }
+        return true;
+    }
+    return false; // not handled
+}
+
 
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
