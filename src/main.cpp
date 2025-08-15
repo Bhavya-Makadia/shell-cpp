@@ -15,7 +15,8 @@
 #include <sstream>
 
 using namespace std;
-void execute_pipeline(vector<string> &cmds);
+void run_command(const string &cmd);
+void execute_pipeline(string input);
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd);
 string find_executable_path(string command);
 string extractExecutable(string &input);
@@ -541,55 +542,84 @@ string find_executable_path(string command)
   return "";
 }
 
-void execute_pipeline(vector<string> &cmds) {
-    int num_cmds = cmds.size();
-    vector<int> pids;
-    int prev_fd = STDIN_FILENO;
+void run_command(const string &cmd) {
+    // Tokenize command
+    stringstream ss(cmd);
+    vector<char*> args;
+    string arg;
+    while (ss >> arg) {
+        char *cstr = new char[arg.size() + 1];
+        strcpy(cstr, arg.c_str());
+        args.push_back(cstr);
+    }
+    args.push_back(nullptr);
 
-    vector<int[2]> pipes(num_cmds - 1);
+    execvp(args[0], args.data());
+    perror("execvp");
+    exit(1);
+}
+
+void execute_pipeline(string input) {
+    // Split input by '|'
+    vector<string> cmds;
+    stringstream ss(input);
+    string segment;
+    while (getline(ss, segment, '|')) {
+        // trim spaces
+        size_t start = segment.find_first_not_of(" \t");
+        size_t end = segment.find_last_not_of(" \t");
+        if (start != string::npos)
+            cmds.push_back(segment.substr(start, end - start + 1));
+    }
+
+    int n = cmds.size();
+    if (n == 0) return;
+
+    vector<int> pids(n);
+    vector<int[2]> pipes(n - 1);
 
     // Create all pipes
-    for (int i = 0; i < num_cmds - 1; ++i) {
+    for (int i = 0; i < n - 1; i++) {
         if (pipe(pipes[i]) == -1) {
             perror("pipe");
             exit(1);
         }
     }
 
-    // Start all commands
-    for (int i = 0; i < num_cmds; ++i) {
-        pid_t pid = fork();
-        if (pid == -1) {
+    // Launch all commands
+    for (int i = 0; i < n; i++) {
+        pids[i] = fork();
+        if (pids[i] == -1) {
             perror("fork");
             exit(1);
         }
-        if (pid == 0) { // child
-            if (i > 0) { // has previous pipe
+        if (pids[i] == 0) {
+            // If not first command, read from previous pipe
+            if (i > 0) {
                 dup2(pipes[i - 1][0], STDIN_FILENO);
             }
-            if (i < num_cmds - 1) { // has next pipe
+            // If not last command, write to next pipe
+            if (i < n - 1) {
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
-            // Close all pipe fds in child
-            for (int j = 0; j < num_cmds - 1; ++j) {
+            // Close all pipes in child
+            for (int j = 0; j < n - 1; j++) {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
-            run_builtin_or_exec(cmds[i], STDOUT_FILENO, STDIN_FILENO);
-            exit(0);
+            run_command(cmds[i]);
         }
-        pids.push_back(pid);
     }
 
-    // Parent closes all pipe ends
-    for (int i = 0; i < num_cmds - 1; ++i) {
+    // Parent closes all pipes
+    for (int i = 0; i < n - 1; i++) {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
-    // Wait for all processes
-    for (pid_t pid : pids) {
-        waitpid(pid, nullptr, 0);
+    // Wait for all children
+    for (int i = 0; i < n; i++) {
+        waitpid(pids[i], nullptr, 0);
     }
 }
 
