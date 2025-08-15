@@ -278,8 +278,12 @@ int main()
         size_t file_space = input.find(' ', space + 1);
         if (file_space != string::npos) {
             string history_file = input.substr(file_space + 1);
-            clear_history(); // Clear current history
-            read_history(history_file.c_str()); // Read history from file
+            ifstream file(history_file);
+            string line;
+            while (getline(file, line)) {
+                add_history(line.c_str());
+            }
+            file.close();
         } else {
             cout << "history: -r requires a file name" << endl;
         }
@@ -290,6 +294,7 @@ int main()
         cout << i + 1 << " " << commandHistory[i] << endl;
       }
     }
+    add_history(input.c_str());
     } else
     {
       cout << input << ": command not found" << endl;
