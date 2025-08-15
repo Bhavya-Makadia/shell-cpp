@@ -715,7 +715,7 @@ bool run_builtin(const std::vector<std::string>& args) {
             return true;
         }
         std::string target = args[1];
-        extern std::map<std::string,bool> commands; // your builtin map
+        // extern std::map<std::string,bool> commands; // your builtin map
         if (commands.find(target) != commands.end()) {
             std::cout << target << " is a shell builtin" << std::endl;
         } else {
