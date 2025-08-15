@@ -535,6 +535,29 @@ string find_executable_path(string command)
 }
 
 void run_command(const string &cmd) {
+    if (cmd.rfind("echo", 0) == 0) {
+        string echoOutput = handleQuote(cmd.substr(5));
+        cout << echoOutput << endl;
+        exit(0);
+    }
+    else if (cmd == "pwd") {
+        cout << filesystem::current_path().string() << endl;
+        exit(0);
+    }
+    else if (cmd.rfind("type", 0) == 0) {
+        string command = cmd.substr(5);
+        if (commands.find(command) != commands.end())
+            cout << command << " is a shell builtin" << endl;
+        else {
+            string executable_path = find_executable_path(command);
+            if (!executable_path.empty())
+                cout << command << " is " << executable_path << endl;
+            else
+                cout << command << ": not found" << endl;
+        }
+        exit(0);
+    }
+
     // Tokenize command
     stringstream ss(cmd);
     vector<char*> args;
@@ -550,7 +573,6 @@ void run_command(const string &cmd) {
     perror("execvp");
     exit(1);
 }
-
 void execute_pipeline(string input) {
     vector<string> cmds;
     stringstream ss(input);
@@ -610,8 +632,8 @@ void execute_pipeline(string input) {
                     close(pipes[j][1]);
                 }
             }
-            run_builtin_or_exec(cmds[i], STDOUT_FILENO, STDIN_FILENO);
-            exit(0); // Added exit after executing command
+            run_command(cmds[i]);
+            exit(0); 
         }
     }
 
@@ -625,8 +647,14 @@ void execute_pipeline(string input) {
     for (int i = 0; i < n; i++) {
         waitpid(pids[i], nullptr, 0);
     }
+    
+    string output;
+    char buffer[1024];
+    while (read(STDIN_FILENO, buffer, 1024) > 0) {
+        output += buffer;
+    }
+    cout << output;
 }
-
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
     if (input_fd != STDIN_FILENO) {
