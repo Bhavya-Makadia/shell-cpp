@@ -535,6 +535,56 @@ string find_executable_path(string command)
   return "";
 }
 
+void run_command(const string &cmd) {
+    // Built-in handling as before...
+    if (cmd.rfind("echo", 0) == 0) {
+        string echoOutput = handleQuote(cmd.substr(5));
+        cout << echoOutput << endl;
+        exit(0);
+    }
+    else if (cmd == "pwd") {
+        cout << filesystem::current_path().string() << endl;
+        exit(0);
+    }
+    else if (cmd.rfind("type", 0) == 0) {
+        string command = cmd.substr(5);
+        if (commands.find(command) != commands.end())
+            cout << command << " is a shell builtin" << endl;
+        else {
+            string executable_path = find_executable_path(command);
+            if (!executable_path.empty())
+                cout << command << " is " << executable_path << endl;
+            else
+                cout << command << ": not found" << endl;
+        }
+        exit(0);
+    }
+
+    // Tokenize command
+    istringstream iss(cmd);
+    vector<string> tokens{istream_iterator<string>{iss}, istream_iterator<string>{}};
+    if (tokens.empty()) exit(0);
+
+    // Convert to char* array for execvp
+    vector<char*> argv;
+    for (auto& token : tokens) argv.push_back(const_cast<char*>(token.c_str()));
+    argv.push_back(nullptr);
+
+    // Print arguments for debugging (optional)
+    // cerr << "execvp: [";
+    // for (size_t i = 0; i < argv.size() - 1; ++i) {
+    //     if (i > 0) cerr << ", ";
+    //     cerr << argv[i];
+    // }
+    // cerr << "]" << endl;
+
+    // Proper execvp call
+    execvp(argv[0], argv.data());
+
+    // If exec fails
+    perror("execvp");
+    exit(1);
+}
 void execute_pipeline(string input) {
     vector<string> cmds;
     stringstream ss(input);
@@ -546,19 +596,13 @@ void execute_pipeline(string input) {
             cmds.push_back(segment.substr(start, end - start + 1));
     }
 
-    // Debug: print pipeline commands for verification
-    // cerr << "Pipeline commands:" << endl;
-    // for (const auto& c : cmds) {
-    //     cerr << "[" << c << "]" << endl;
-    // }
-
     int n = cmds.size();
     if (n == 0) return;
 
     vector<pid_t> pids(n);
     vector<int[2]> pipes(n - 1);
 
-    // Create pipes
+    // Create all the pipes
     for (int i = 0; i < n - 1; i++) {
         if (pipe(pipes[i]) == -1) {
             perror("pipe");
@@ -566,184 +610,54 @@ void execute_pipeline(string input) {
         }
     }
 
+    // Fork all children to execute the commands in the pipeline
     for (int i = 0; i < n; ++i) {
         pid_t pid = fork();
         if (pid == -1) {
             perror("fork");
             exit(1);
         } 
-        else if (pid == 0) {
+        else if (pid == 0) {  // Child process
+            // If not the first command, redirect stdin to read end of previous pipe
             if (i > 0) {
                 if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
                     perror("dup2 input");
                     exit(1);
                 }
             }
+            // If not the last command, redirect stdout to write end of current pipe
             if (i < n - 1) {
                 if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
                     perror("dup2 output");
                     exit(1);
                 }
             }
+
+            // Close all pipe file descriptors in child to prevent FD leaks
             for (int j = 0; j < n - 1; ++j) {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
 
+            // Execute the command
             run_command(cmds[i]);
-            exit(127);
+            exit(127);  // exec failed fallback
         }
+        // In parent, save child's pid
         pids[i] = pid;
     }
 
+    // Parent closes all pipe file descriptors
     for (int i = 0; i < n - 1; ++i) {
-        close(pipes[i]);
-        close(pipes[i][2]);
+        close(pipes[i][0]);
+        close(pipes[i][1]);
     }
+
+    // Parent waits for all children to finish
     for (int i = 0; i < n; ++i) {
         waitpid(pids[i], nullptr, 0);
     }
 }
-
-
-void run_command(const string &cmd) {
-    istringstream iss(cmd);
-    vector<string> tokens{istream_iterator<string>{iss}, istream_iterator<string>{}};
-    if (tokens.empty()) exit(0);
-
-    vector<char*> argv;
-    for (auto& token : tokens) argv.push_back(const_cast<char*>(token.c_str()));
-    argv.push_back(nullptr);
-
-    execvp(argv[0], argv.data());
-    perror("execvp");
-    exit(1);
-}
-
-
-// void run_command(const string &cmd) {
-//     // Built-in handling as before...
-//     if (cmd.rfind("echo", 0) == 0) {
-//         string echoOutput = handleQuote(cmd.substr(5));
-//         cout << echoOutput << endl;
-//         exit(0);
-//     }
-//     else if (cmd == "pwd") {
-//         cout << filesystem::current_path().string() << endl;
-//         exit(0);
-//     }
-//     else if (cmd.rfind("type", 0) == 0) {
-//         string command = cmd.substr(5);
-//         if (commands.find(command) != commands.end())
-//             cout << command << " is a shell builtin" << endl;
-//         else {
-//             string executable_path = find_executable_path(command);
-//             if (!executable_path.empty())
-//                 cout << command << " is " << executable_path << endl;
-//             else
-//                 cout << command << ": not found" << endl;
-//         }
-//         exit(0);
-//     }
-
-//     // Tokenize command
-//     istringstream iss(cmd);
-//     vector<string> tokens{istream_iterator<string>{iss}, istream_iterator<string>{}};
-//     if (tokens.empty()) exit(0);
-
-//     // Convert to char* array for execvp
-//     vector<char*> argv;
-//     for (auto& token : tokens) argv.push_back(const_cast<char*>(token.c_str()));
-//     argv.push_back(nullptr);
-
-//     // Print arguments for debugging (optional)
-//     // cerr << "execvp: [";
-//     // for (size_t i = 0; i < argv.size() - 1; ++i) {
-//     //     if (i > 0) cerr << ", ";
-//     //     cerr << argv[i];
-//     // }
-//     // cerr << "]" << endl;
-
-//     // Proper execvp call
-//     execvp(argv[0], argv.data());
-
-//     // If exec fails
-//     perror("execvp");
-//     exit(1);
-// }
-// void execute_pipeline(string input) {
-//     vector<string> cmds;
-//     stringstream ss(input);
-//     string segment;
-//     while (getline(ss, segment, '|')) {
-//         size_t start = segment.find_first_not_of(" \t");
-//         size_t end = segment.find_last_not_of(" \t");
-//         if (start != string::npos)
-//             cmds.push_back(segment.substr(start, end - start + 1));
-//     }
-
-//     int n = cmds.size();
-//     if (n == 0) return;
-
-//     vector<pid_t> pids(n);
-//     vector<int[2]> pipes(n - 1);
-
-//     // Create all the pipes
-//     for (int i = 0; i < n - 1; i++) {
-//         if (pipe(pipes[i]) == -1) {
-//             perror("pipe");
-//             exit(1);
-//         }
-//     }
-
-//     // Fork all children to execute the commands in the pipeline
-//     for (int i = 0; i < n; ++i) {
-//         pid_t pid = fork();
-//         if (pid == -1) {
-//             perror("fork");
-//             exit(1);
-//         } 
-//         else if (pid == 0) {  // Child process
-//             // If not the first command, redirect stdin to read end of previous pipe
-//             if (i > 0) {
-//                 if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
-//                     perror("dup2 input");
-//                     exit(1);
-//                 }
-//             }
-//             // If not the last command, redirect stdout to write end of current pipe
-//             if (i < n - 1) {
-//                 if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
-//                     perror("dup2 output");
-//                     exit(1);
-//                 }
-//             }
-
-//             // Close all pipe file descriptors in child to prevent FD leaks
-//             for (int j = 0; j < n - 1; ++j) {
-//                 close(pipes[j][0]);
-//                 close(pipes[j][1]);
-//             }
-
-//             // Execute the command
-//             run_command(cmds[i]);
-//             exit(127);  // exec failed fallback
-//         }
-//         // In parent, save child's pid
-//         pids[i] = pid;
-//     }
-
-//     // Parent closes all pipe file descriptors
-//     for (int i = 0; i < n - 1; ++i) {
-//         close(pipes[i][0]);
-//         close(pipes[i][1]);
-//     }
-
-//     // Parent waits for all children to finish
-//     for (int i = 0; i < n; ++i) {
-//         waitpid(pids[i], nullptr, 0);
-//     }
-// }
 
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
