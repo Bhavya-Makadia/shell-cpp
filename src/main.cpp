@@ -598,7 +598,7 @@ void execute_pipeline(string input) {
 
     for (int i = 0; i < n - 1; ++i) {
         close(pipes[i]);
-        close(pipes[i][1]);
+        close(pipes[i][2]);
     }
     for (int i = 0; i < n; ++i) {
         waitpid(pids[i], nullptr, 0);
