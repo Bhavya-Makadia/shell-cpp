@@ -578,7 +578,6 @@ void execute_pipeline(string input) {
     stringstream ss(input);
     string segment;
     while (getline(ss, segment, '|')) {
-        // trim spaces
         size_t start = segment.find_first_not_of(" \t");
         size_t end = segment.find_last_not_of(" \t");
         if (start != string::npos)
@@ -588,10 +587,10 @@ void execute_pipeline(string input) {
     int n = cmds.size();
     if (n == 0) return;
 
-    vector<int> pids(n);
+    vector<pid_t> pids(n);
     vector<int[2]> pipes(n - 1);
 
-    // Create all pipes
+    // Create all the pipes
     for (int i = 0; i < n - 1; i++) {
         if (pipe(pipes[i]) == -1) {
             perror("pipe");
@@ -599,36 +598,53 @@ void execute_pipeline(string input) {
         }
     }
 
-    // Launch all commands
+    // Fork all children to execute the commands in the pipeline
     for (int i = 0; i < n; ++i) {
-    pid_t pid = fork();
-    if (pid == 0) {
-        // If not the first command, redirect stdin from previous pipe
-        if (i > 0) {
-            dup2(pipes[i-1], STDIN_FILENO);
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            exit(1);
+        } 
+        else if (pid == 0) {  // Child process
+            // If not the first command, redirect stdin to read end of previous pipe
+            if (i > 0) {
+                if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
+                    perror("dup2 input");
+                    exit(1);
+                }
+            }
+            // If not the last command, redirect stdout to write end of current pipe
+            if (i < n - 1) {
+                if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
+                    perror("dup2 output");
+                    exit(1);
+                }
+            }
+
+            // Close all pipe file descriptors in child to prevent FD leaks
+            for (int j = 0; j < n - 1; ++j) {
+                close(pipes[j][0]);
+                close(pipes[j][1]);
+            }
+
+            // Execute the command
+            run_command(cmds[i]);
+            exit(127);  // exec failed fallback
         }
-        // If not the last command, redirect stdout to current pipe
-        if (i < n-1) {
-            dup2(pipes[i][1], STDOUT_FILENO);
-        }
-        // Close all pipe fds in this child
-        for (int j = 0; j < n-1; ++j) {
-            close(pipes[j]);
-            close(pipes[j][1]);
-        }
-        // Exec
-        run_command(cmds[i]);
-        exit(127); // If exec fails
+        // In parent, save child's pid
+        pids[i] = pid;
     }
-}
-    // Parent closes all pipes
-    for (int i = 0; i < n-1; ++i) {
-    close(pipes[i]);
-    close(pipes[i][1]);
-}
-for (int i = 0; i < n; ++i) {
-    waitpid(pids[i], NULL, 0);
-}
+
+    // Parent closes all pipe file descriptors
+    for (int i = 0; i < n - 1; ++i) {
+        close(pipes[i][0]);
+        close(pipes[i][1]);
+    }
+
+    // Parent waits for all children to finish
+    for (int i = 0; i < n; ++i) {
+        waitpid(pids[i], nullptr, 0);
+    }
 }
 
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
