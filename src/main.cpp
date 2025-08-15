@@ -635,7 +635,7 @@ void execute_pipeline(string input) {
     // Parent closes all pipes
     for (int i = 0; i < n - 1; i++) {
         close(pipes[i][0]);
-        close(pipes[i]);
+        close(pipes[i][1]);
     }
 
     // Wait for all children
