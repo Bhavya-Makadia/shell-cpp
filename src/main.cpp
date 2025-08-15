@@ -28,7 +28,7 @@ string handleQuote(string echoInput);
 char* command_generator(const char* text, int state);
 char** command_completion(const char* text, int start, int end);
 
-set<string> commands = {"exit", "echo", "type", "pwd", "cd"};
+set<string> commands = {"exit", "echo", "type", "pwd", "cd", "history"};
 
 int main()
 {
