@@ -569,7 +569,12 @@ void run_command(const string &cmd) {
     }
     args.push_back(nullptr);
 
-    execvp(args[0], args.data());
+    // *** Add debug print ***
+    cerr << "execvp: [" << args;
+    for(int i = 1; args[i]; ++i) cerr << "," << args[i];
+    cerr << "]" << endl;
+
+    execvp(args, args.data());
     perror("execvp");
     exit(1);
 }
