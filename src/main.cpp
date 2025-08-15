@@ -621,9 +621,9 @@ void execute_pipeline(const std::string& input) {
     int n = commands.size();
     int prev_fd = -1;    // For read end of previous pipe
     std::vector<int> pids;
-
+  int pipe_fd{0};
     for (int i = 0; i < n; ++i) {
-        int pipe_fd;
+        
         if (i != n - 1) {
             if (pipe(pipe_fd) == -1) {
                 perror("pipe");
