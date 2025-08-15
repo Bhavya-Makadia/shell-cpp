@@ -28,6 +28,17 @@ int main()
   vector<string> commandHistory;
   int last_appended_index = 0;
   using_history();
+  char* histfile = getenv("HISTFILE");
+    if (histfile != NULL) {
+        read_history(histfile);
+        // Populate commandHistory vector
+        HIST_ENTRY** history_list_ptr = history_list();
+        int hist_length = history_length;
+        for (int i = 0; i < hist_length; i++) {
+            commandHistory.push_back(history_list_ptr[i]->line);
+        }
+        last_appended_index = commandHistory.size(); // Update last_appended_index
+    }
   while(1){
   cout << unitbuf;
   cerr << unitbuf;
