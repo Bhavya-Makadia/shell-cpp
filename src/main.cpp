@@ -282,6 +282,7 @@ int main()
             string line;
             while (getline(file, line)) {
                 add_history(line.c_str());
+                commandHistory.push_back(line);
             }
             file.close();
         } else {
@@ -294,7 +295,6 @@ int main()
         cout << i + 1 << " " << commandHistory[i] << endl;
       }
     }
-    add_history(input.c_str());
     } else
     {
       cout << input << ": command not found" << endl;
