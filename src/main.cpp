@@ -586,12 +586,10 @@ void run_command(const string &cmd) {
     exit(1);
 }
 void execute_pipeline(string input) {
-    // 1. Split input into commands based on '|'
     vector<string> commands;
     istringstream sstream(input);
     string cmd;
     while (getline(sstream, cmd, '|')) {
-        // Trim whitespace
         size_t start = cmd.find_first_not_of(" \t");
         size_t end = cmd.find_last_not_of(" \t");
         if (start != string::npos && end != string::npos)
@@ -600,11 +598,9 @@ void execute_pipeline(string input) {
             commands.push_back(cmd.substr(start));
     }
     int num_cmds = commands.size();
-    if (num_cmds < 2) return; // Needs at least 2 commands to form a pipeline
+    if (num_cmds < 2) return;
 
     vector<int[2]> pipes(num_cmds - 1);
-
-    // 2. Create necessary pipes
     for (int i = 0; i < num_cmds - 1; i++) {
         if (pipe(pipes[i]) == -1) {
             perror("pipe");
@@ -615,37 +611,31 @@ void execute_pipeline(string input) {
     vector<pid_t> pids;
     for (int i = 0; i < num_cmds; i++) {
         pid_t pid = fork();
-        if (pid == 0) { // Child
-            // Input redirection
+        if (pid == 0) {
             if (i > 0) {
                 dup2(pipes[i-1], STDIN_FILENO);
             }
-            // Output redirection
             if (i < num_cmds - 1) {
                 dup2(pipes[i], STDOUT_FILENO);
             }
-            // Close all pipe fds in child
             for (int j = 0; j < num_cmds - 1; j++) {
-                close(pipes[j]); close(pipes[j]);
+                close(pipes[j]);
+                close(pipes[j]);
             }
-
-            // Parse command into args
             istringstream iss(commands[i]);
             vector<string> args_str((istream_iterator<string>(iss)), istream_iterator<string>());
             vector<char*> args;
             for (auto& s : args_str) args.push_back(const_cast<char*>(s.c_str()));
             args.push_back(NULL);
-
-            if (args) {
+            if (!args.empty() && args) {
                 execvp(args, args.data());
-                perror(("execvp: " + string(args)).c_str());
+                perror(("execvp: " + args_str).c_str());
             }
             exit(EXIT_FAILURE);
         } else if (pid > 0) {
             pids.push_back(pid);
         } else {
             perror("fork");
-            // Close pipes and return on error
             for (int j = 0; j < num_cmds - 1; j++) {
                 close(pipes[j]);
                 close(pipes[j]);
@@ -654,18 +644,18 @@ void execute_pipeline(string input) {
         }
     }
 
-    // Close all pipes in parent
+    // Close all pipe ends in parent
     for (int i = 0; i < num_cmds - 1; i++) {
         close(pipes[i]);
         close(pipes[i]);
     }
 
-    // Wait for all children
     int status;
     for (pid_t pid : pids) {
         waitpid(pid, &status, 0);
     }
 }
+
 
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
