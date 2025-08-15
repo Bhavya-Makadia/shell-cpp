@@ -648,12 +648,12 @@ void execute_pipeline(string input) {
         waitpid(pids[i], nullptr, 0);
     }
     
-    string output;
-    char buffer[1024];
-    while (read(STDIN_FILENO, buffer, 1024) > 0) {
-        output += buffer;
-    }
-    cout << output;
+    // string output;
+    // char buffer[1024];
+    // while (read(STDIN_FILENO, buffer, 1024) > 0) {
+    //     output += buffer;
+    // }
+    // cout << output;
 }
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
