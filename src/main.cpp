@@ -26,7 +26,7 @@ int main()
   // Flush after every std::cout / std:cerr
 
   vector<string> commandHistory;
-
+  using_history();
   while(1){
   cout << unitbuf;
   cerr << unitbuf;
@@ -105,6 +105,7 @@ int main()
     if (input.empty()) { // Check for empty input
       continue;
     }
+    add_history(input.c_str());
 
     string exe = extractExecutable(input);
     commandHistory.push_back(input);
