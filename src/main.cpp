@@ -308,8 +308,10 @@ int main()
         } else {
             cout << "history: -a requires a file name" << endl;
         }
-        add_history(input.c_str());
-        commandHistory.push_back(input);
+        if (commandHistory.empty() || commandHistory.back().find("history -a") != 0) {
+            add_history(input.c_str());
+            commandHistory.push_back(input);
+        }
     } else if (space != string::npos && input.substr(space + 1, 2) == "-r") {
         size_t file_space = input.find(' ', space + 1);
         if (file_space != string::npos) {
