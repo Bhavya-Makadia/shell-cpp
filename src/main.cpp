@@ -272,7 +272,10 @@ int main()
         cout << "cd: " << path << ": No such file or directory" << endl;
       }
     } else if (input.compare(0, 7, "history") == 0){
-      for (int i = 0; i < commandHistory.size(); i++){
+      size_t space = input.find(' ');
+      string numStr = input.substr(space + 1);
+      int num = numStr.empty() ? commandHistory.size() : stoi(numStr);
+      for (int i = commandHistory.size() - num; i < commandHistory.size(); i++){
         cout << i + 1 << " " << commandHistory[i] << endl;
       }
     } else
