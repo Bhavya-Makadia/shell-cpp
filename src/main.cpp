@@ -17,6 +17,8 @@ string extractExecutable(string &input);
 string handleQuote(string echoInput);
 char* command_generator(const char* text, int state);
 char** command_completion(const char* text, int start, int end);
+void execute_pipeline(vector<string> &commands);
+int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd);
 
 set<string> commands = {"exit", "echo", "type", "pwd", "cd"};
 
@@ -118,6 +120,19 @@ int main()
       continue;
     }
     add_history(input.c_str());
+
+    if (input.find('|') != string::npos) {
+    vector<string> cmds;
+    stringstream ss(input);
+    string segment;
+    while (getline(ss, segment, '|')) {
+        segment.erase(0, segment.find_first_not_of(" \t")); // trim start
+        segment.erase(segment.find_last_not_of(" \t") + 1); // trim end
+        cmds.push_back(segment);
+    }
+    execute_pipeline(cmds); // run pipeline
+    continue; // skip rest of loop since it's handled
+}
 
     string exe = extractExecutable(input);
     commandHistory.push_back(input);
@@ -521,4 +536,73 @@ string find_executable_path(string command)
   }
   free(path_copy);
   return "";
+}
+
+void execute_pipeline(vector<string> &commands) {
+    int num_cmds = commands.size();
+    int pipefd[2];
+    int input_fd = STDIN_FILENO;
+
+    for (int i = 0; i < num_cmds; ++i) {
+        if (i < num_cmds - 1) {
+            pipe(pipefd);
+        }
+
+        pid_t pid = fork();
+        if (pid == 0) {
+            // Child
+            int output_fd = (i < num_cmds - 1) ? pipefd[1] : STDOUT_FILENO;
+            run_builtin_or_exec(commands[i], output_fd, input_fd);
+            exit(0);
+        } else {
+            // Parent
+            if (input_fd != STDIN_FILENO) close(input_fd);
+            if (i < num_cmds - 1) {
+                close(pipefd[1]);
+                input_fd = pipefd[0];
+            }
+            waitpid(pid, nullptr, 0);
+        }
+    }
+}
+
+int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
+    // Redirect if part of pipeline
+    if (input_fd != STDIN_FILENO) {
+        dup2(input_fd, STDIN_FILENO);
+        close(input_fd);
+    }
+    if (output_fd != STDOUT_FILENO) {
+        dup2(output_fd, STDOUT_FILENO);
+        close(output_fd);
+    }
+
+    // Detect & run built-ins
+    if (cmd.rfind("echo", 0) == 0) {
+        string echoOutput = handleQuote(cmd.substr(5));
+        cout << echoOutput << endl;
+        return 0;
+    }
+    else if (cmd == "pwd") {
+        cout << filesystem::current_path().string() << endl;
+        return 0;
+    }
+    else if (cmd.rfind("type", 0) == 0) {
+        string command = cmd.substr(5);
+        if (commands.find(command) != commands.end())
+            cout << command << " is a shell builtin" << endl;
+        else
+            cout << command << ": not found" << endl;
+        return 0;
+    }
+
+    // External command
+    vector<char*> argv;
+    istringstream iss(cmd);
+    string token;
+    while (iss >> token) argv.push_back(strdup(token.c_str()));
+    argv.push_back(nullptr);
+    execvp(argv[0], argv.data());
+    perror("execvp");
+    exit(1);
 }
