@@ -609,12 +609,12 @@ void execute_pipeline(string input) {
         }
         // If not the last command, redirect stdout to current pipe
         if (i < n-1) {
-            dup2(pipes[i], STDOUT_FILENO);
+            dup2(pipes[i][1], STDOUT_FILENO);
         }
         // Close all pipe fds in this child
         for (int j = 0; j < n-1; ++j) {
             close(pipes[j]);
-            close(pipes[j]);
+            close(pipes[j][1]);
         }
         // Exec
         run_command(cmds[i]);
@@ -624,7 +624,7 @@ void execute_pipeline(string input) {
     // Parent closes all pipes
     for (int i = 0; i < n-1; ++i) {
     close(pipes[i]);
-    close(pipes[i]);
+    close(pipes[i][1]);
 }
 for (int i = 0; i < n; ++i) {
     waitpid(pids[i], NULL, 0);
