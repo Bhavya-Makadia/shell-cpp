@@ -666,27 +666,28 @@ int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Built-ins
     if (cmd.rfind("echo", 0) == 0) {
         string echoOutput = handleQuote(cmd.substr(5));
-        cout << echoOutput << endl;
-        cout.flush();
+        echoOutput += "\n";
+        write(STDOUT_FILENO, echoOutput.c_str(), echoOutput.size());
         return 0;
     }
     else if (cmd == "pwd") {
-        cout << filesystem::current_path().string() << endl;
-        cout.flush();
+        string path = filesystem::current_path().string() + "\n";
+        write(STDOUT_FILENO, path.c_str(), path.size());
         return 0;
     }
     else if (cmd.rfind("type", 0) == 0) {
         string command = cmd.substr(5);
-        if (commands.find(command) != commands.end())
-            cout << command << " is a shell builtin" << endl;
-        else {
+        string output;
+        if (commands.find(command) != commands.end()) {
+            output = command + " is a shell builtin\n";
+        } else {
             string executable_path = find_executable_path(command);
             if (!executable_path.empty())
-                cout << command << " is " << executable_path << endl;
+                output = command + " is " + executable_path + "\n";
             else
-                cout << command << ": not found" << endl;
+                output = command + ": not found\n";
         }
-        cout.flush();
+        write(STDOUT_FILENO, output.c_str(), output.size());
         return 0;
     }
 
