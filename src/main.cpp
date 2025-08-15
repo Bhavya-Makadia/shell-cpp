@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 #include <map>
 #include <unistd.h>
 #include <cstring>
@@ -23,6 +24,8 @@ int main()
 {
   rl_attempted_completion_function = command_completion;
   // Flush after every std::cout / std:cerr
+
+  vector<string> commandHistory;
 
   while(1){
   cout << unitbuf;
@@ -89,7 +92,8 @@ int main()
       {"umask", true},
       {"unalias", true},
       {"unset", true},
-      {"wait", true}};
+      {"wait", true}
+    };
 
     char* input_cstr = readline("$ ");
     if (!input_cstr) { // Check for EOF or error
@@ -103,7 +107,7 @@ int main()
     }
 
     string exe = extractExecutable(input);
-
+    commandHistory.push_back(input);
     if (input == "exit 0")
     {
       exit(0);
@@ -267,8 +271,11 @@ int main()
       {
         cout << "cd: " << path << ": No such file or directory" << endl;
       }
-    }
-    else
+    } else if (input.compare(0, 7, "history") == 0){
+      for (int i = 0; i < commandHistory.size(); i++){
+        cout << i + 1 << " " << commandHistory[i] << endl;
+      }
+    } else
     {
       cout << input << ": command not found" << endl;
     }
