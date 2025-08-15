@@ -601,41 +601,25 @@ void execute_pipeline(string input) {
 
     // Launch all commands
     for (int i = 0; i < n; i++) {
-        pids[i] = fork();
-        if (pids[i] == -1) {
-            perror("fork");
-            exit(1);
+    pids[i] = fork();
+    if (pids[i] == 0) {
+        // Input redirection
+        if (i > 0) {
+            dup2(pipes[i - 1], STDIN_FILENO);
         }
-        if (pids[i] == 0) {
-            // If not first command, read from previous pipe
-            if (i > 0) {
-                if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
-                    perror("dup2");
-                    exit(1);
-                }
-                close(pipes[i - 1][0]);
-                close(pipes[i - 1][1]);
-            }
-            // If not last command, write to next pipe
-            if (i < n - 1) {
-                if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
-                    perror("dup2");
-                    exit(1);
-                }
-                close(pipes[i][1]);
-                close(pipes[i][0]);
-            }
-            // Close all other pipes in child
-            for (int j = 0; j < n - 1; j++) {
-                if (j != i - 1 && j != i) {
-                    close(pipes[j][0]);
-                    close(pipes[j][1]);
-                }
-            }
-            run_command(cmds[i]);
-            exit(0); 
+        // Output redirection
+        if (i < n - 1) {
+            dup2(pipes[i], STDOUT_FILENO);
         }
+        // Close all pipe fds (important!)
+        for (int j = 0; j < n - 1; j++) {
+            close(pipes[j]);
+            close(pipes[j]);
+        }
+        run_command(cmds[i]);
+        exit(0);
     }
+}
 
     // Parent closes all pipes
     for (int i = 0; i < n - 1; i++) {
