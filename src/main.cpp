@@ -600,48 +600,46 @@ void execute_pipeline(string input) {
     if (n == 0) return;
 
     vector<pid_t> pids(n);
-    vector<int[2]> pipes(n - 1);
+    vector<array<int, 2>> pipes(n - 1);
 
-    // Create all the pipes
+    // Create pipes
     for (int i = 0; i < n - 1; i++) {
-        if (pipe(pipes[i]) == -1) {
+        if (pipe(pipes[i].data()) == -1) {
             perror("pipe");
             exit(1);
         }
     }
 
-    // Fork all children to execute the commands in the pipeline
+    // Fork each command
     for (int i = 0; i < n; ++i) {
         pid_t pid = fork();
         if (pid == -1) {
             perror("fork");
             exit(1);
         } 
-        else if (pid == 0) {  // Child process
-            // If not the first command, redirect stdin to read end of previous pipe
-             int in_fd = (i > 0) ? pipes[i - 1][0] : STDIN_FILENO;
-              int out_fd = (i < n - 1) ? pipes[i][1] : STDOUT_FILENO;
+        else if (pid == 0) { // child
+            int in_fd = (i > 0) ? pipes[i - 1][0] : STDIN_FILENO;
+            int out_fd = (i < n - 1) ? pipes[i][1] : STDOUT_FILENO;
 
-              // Close unused ends before executing
-              for (int j = 0; j < n - 1; ++j) {
-                  if (pipes[j][0] != in_fd) close(pipes[j][0]);
-                  if (pipes[j][1] != out_fd) close(pipes[j][1]);
-              }
+            // Close unused pipes in child
+            for (int j = 0; j < n - 1; ++j) {
+                if (pipes[j][0] != in_fd) close(pipes[j][0]);
+                if (pipes[j][1] != out_fd) close(pipes[j][1]);
+            }
 
-              run_builtin_or_exec(cmds[i], out_fd, in_fd);
-              exit(0);  // exec failed fallback
-                  }
-                  // In parent, save child's pid
-                  pids[i] = pid;
-              }
+            run_builtin_or_exec(cmds[i], out_fd, in_fd);
+            exit(0);
+        }
+        pids[i] = pid;
+    }
 
-    // Parent closes all pipe file descriptors
+    // Close all pipes in parent
     for (int i = 0; i < n - 1; ++i) {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
-    // Parent waits for all children to finish
+    // Wait for all children
     for (int i = 0; i < n; ++i) {
         waitpid(pids[i], nullptr, 0);
     }
