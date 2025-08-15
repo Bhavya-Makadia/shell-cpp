@@ -17,7 +17,9 @@
 
 using namespace std;
 void run_command(const string &cmd);
-void execute_pipeline(string input);
+vector<std::string> split_by_pipe(const std::string& str);
+vector<char*> parse_args(const std::string& cmd);
+void execute_pipeline(const std::string& input);
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd);
 string find_executable_path(string command);
 string extractExecutable(string &input);
@@ -585,77 +587,89 @@ void run_command(const string &cmd) {
     perror("execvp");
     exit(1);
 }
-void execute_pipeline(string input) {
-    vector<string> commands;
-    istringstream sstream(input);
-    string cmd;
-    while (getline(sstream, cmd, '|')) {
-        size_t start = cmd.find_first_not_of(" \t");
-        size_t end = cmd.find_last_not_of(" \t");
-        if (start != string::npos && end != string::npos)
-            commands.push_back(cmd.substr(start, end - start + 1));
-        else if (start != string::npos)
-            commands.push_back(cmd.substr(start));
-    }
-    int num_cmds = commands.size();
-    if (num_cmds < 2) return;
 
-    vector<int[2]> pipes(num_cmds - 1);
-    for (int i = 0; i < num_cmds - 1; i++) {
-        if (pipe(pipes[i]) == -1) {
-            perror("pipe");
-            exit(EXIT_FAILURE);
-        }
+std::vector<std::string> split_by_pipe(const std::string& str) {
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string segment;
+    while (std::getline(ss, segment, '|')) {
+        // Remove leading/trailing spaces
+        size_t first = segment.find_first_not_of(" \t");
+        size_t last = segment.find_last_not_of(" \t");
+        if (first != std::string::npos)
+            segment = segment.substr(first, last-first+1);
+        result.push_back(segment);
     }
-
-    vector<pid_t> pids;
-    for (int i = 0; i < num_cmds; i++) {
-        pid_t pid = fork();
-        if (pid == 0) {
-            if (i > 0) {
-                dup2(pipes[i-1], STDIN_FILENO);
-            }
-            if (i < num_cmds - 1) {
-                dup2(pipes[i], STDOUT_FILENO);
-            }
-            for (int j = 0; j < num_cmds - 1; j++) {
-                close(pipes[j]);
-                close(pipes[j]);
-            }
-            istringstream iss(commands[i]);
-            vector<string> args_str((istream_iterator<string>(iss)), istream_iterator<string>());
-            vector<char*> args;
-            for (auto& s : args_str) args.push_back(const_cast<char*>(s.c_str()));
-            args.push_back(NULL);
-            if (!args.empty() && args) {
-                execvp(args, args.data());
-                perror(("execvp: " + args_str).c_str());
-            }
-            exit(EXIT_FAILURE);
-        } else if (pid > 0) {
-            pids.push_back(pid);
-        } else {
-            perror("fork");
-            for (int j = 0; j < num_cmds - 1; j++) {
-                close(pipes[j]);
-                close(pipes[j]);
-            }
-            return;
-        }
-    }
-
-    // Close all pipe ends in parent
-    for (int i = 0; i < num_cmds - 1; i++) {
-        close(pipes[i]);
-        close(pipes[i]);
-    }
-
-    int status;
-    for (pid_t pid : pids) {
-        waitpid(pid, &status, 0);
-    }
+    return result;
 }
 
+// Helper: parse command string into argv
+std::vector<char*> parse_args(const std::string& cmd) {
+    std::istringstream iss(cmd);
+    std::vector<std::string> tokens;
+    std::string token;
+    while (iss >> token)
+        tokens.push_back(token);
+    std::vector<char*> args;
+    for (auto& t : tokens) args.push_back(&t[0]);
+    args.push_back(nullptr); // exec needs a nullptr-terminated array
+    return args;
+}
+
+void execute_pipeline(const std::string& input) {
+    std::vector<std::string> commands = split_by_pipe(input);
+    int n = commands.size();
+    int prev_fd = -1;    // For read end of previous pipe
+    std::vector<int> pids;
+
+    for (int i = 0; i < n; ++i) {
+        int pipe_fd;
+        if (i != n - 1) {
+            if (pipe(pipe_fd) == -1) {
+                perror("pipe");
+                return;
+            }
+        }
+
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("fork");
+            return;
+        } else if (pid == 0) {
+            // Child process
+            // If not the first command, redirect stdin to prev_fd
+            if (i > 0) {
+                dup2(prev_fd, 0);
+                close(prev_fd);
+            }
+            // If not the last command, redirect stdout to pipe_fd[1]
+            if (i != n - 1) {
+                close(pipe_fd);  // Close unused read end
+                dup2(pipe_fd, 1);
+                close(pipe_fd);
+            }
+
+            // Parse args and exec
+            auto args = parse_args(commands[i]);
+            execvp(args, args.data());
+            perror("execvp");
+            exit(1);
+        } else {
+            // Parent process
+            if (prev_fd != -1)
+                close(prev_fd);     // Close old input
+            if (i != n - 1) {
+                close(pipe_fd); // Parent doesn't write
+                prev_fd = pipe_fd; // Save read end for next child
+            }
+            pids.push_back(pid);
+        }
+    }
+    // Wait for all children
+    int status;
+    for (int pid : pids)
+        waitpid(pid, &status, 0);
+}
 
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
