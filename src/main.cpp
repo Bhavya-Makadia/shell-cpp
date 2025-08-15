@@ -28,7 +28,34 @@ string handleQuote(string echoInput);
 char* command_generator(const char* text, int state);
 char** command_completion(const char* text, int start, int end);
 
- map<string, bool> commands = {
+set<string> commandsBuiltin = {"exit", "echo", "type", "pwd", "cd"};
+
+int main()
+{
+  rl_attempted_completion_function = command_completion;
+  // Flush after every std::cout / std:cerr
+
+  vector<string> commandHistory;
+  int last_appended_index = 0;
+  using_history();
+  char* histfile = getenv("HISTFILE");
+    if (histfile != NULL) {
+        read_history(histfile);
+        // Populate commandHistory vector
+        HIST_ENTRY** history_list_ptr = history_list();
+        int hist_length = history_length;
+        for (int i = 0; i < hist_length; i++) {
+            commandHistory.push_back(history_list_ptr[i]->line);
+        }
+        last_appended_index = commandHistory.size(); // Update last_appended_index
+    }
+  while(1){
+  cout << unitbuf;
+  cerr << unitbuf;
+
+  string input;
+
+  map<string, bool> commands = {
       {"alias", true},
       {"bg", true},
       {"bind", true},
@@ -90,32 +117,6 @@ char** command_completion(const char* text, int start, int end);
       {"wait", true}
     };
 
-int main()
-{
-  rl_attempted_completion_function = command_completion;
-  // Flush after every std::cout / std:cerr
-
-  vector<string> commandHistory;
-  int last_appended_index = 0;
-  using_history();
-  char* histfile = getenv("HISTFILE");
-    if (histfile != NULL) {
-        read_history(histfile);
-        // Populate commandHistory vector
-        HIST_ENTRY** history_list_ptr = history_list();
-        int hist_length = history_length;
-        for (int i = 0; i < hist_length; i++) {
-            commandHistory.push_back(history_list_ptr[i]->line);
-        }
-        last_appended_index = commandHistory.size(); // Update last_appended_index
-    }
-  while(1){
-  cout << unitbuf;
-  cerr << unitbuf;
-
-  string input;
-
- 
     char* input_cstr = readline("$ ");
     if (!input_cstr) { // Check for EOF or error
       break;
