@@ -126,17 +126,9 @@ int main()
     add_history(input.c_str());
 
     if (input.find('|') != string::npos) {
-    vector<string> cmds;
-    stringstream ss(input);
-    string segment;
-    while (getline(ss, segment, '|')) {
-        segment.erase(0, segment.find_first_not_of(" \t")); // trim start
-        segment.erase(segment.find_last_not_of(" \t") + 1); // trim end
-        cmds.push_back(segment);
-    }
-    execute_pipeline(cmds); // run pipeline
+    execute_pipeline(input); // run pipeline
     continue; // skip rest of loop since it's handled
-}
+    }
 
     string exe = extractExecutable(input);
     commandHistory.push_back(input);
@@ -560,7 +552,6 @@ void run_command(const string &cmd) {
 }
 
 void execute_pipeline(string input) {
-    // Split input by '|'
     vector<string> cmds;
     stringstream ss(input);
     string segment;
@@ -596,18 +587,31 @@ void execute_pipeline(string input) {
         if (pids[i] == 0) {
             // If not first command, read from previous pipe
             if (i > 0) {
-                dup2(pipes[i - 1][0], STDIN_FILENO);
+                if (dup2(pipes[i - 1][0], STDIN_FILENO) == -1) {
+                    perror("dup2");
+                    exit(1);
+                }
+                close(pipes[i - 1][0]);
+                close(pipes[i - 1][1]);
             }
             // If not last command, write to next pipe
             if (i < n - 1) {
-                dup2(pipes[i][1], STDOUT_FILENO);
+                if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
+                    perror("dup2");
+                    exit(1);
+                }
+                close(pipes[i][1]);
+                close(pipes[i][0]);
             }
-            // Close all pipes in child
+            // Close all other pipes in child
             for (int j = 0; j < n - 1; j++) {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
+                if (j != i - 1 && j != i) {
+                    close(pipes[j][0]);
+                    close(pipes[j][1]);
+                }
             }
-            run_command(cmds[i]);
+            run_builtin_or_exec(cmds[i], STDOUT_FILENO, STDIN_FILENO);
+            exit(0); // Added exit after executing command
         }
     }
 
@@ -626,12 +630,18 @@ void execute_pipeline(string input) {
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
     // Apply input redirection if needed
     if (input_fd != STDIN_FILENO) {
-        dup2(input_fd, STDIN_FILENO);
+        if (dup2(input_fd, STDIN_FILENO) == -1) {
+            perror("dup2");
+            exit(1);
+        }
         close(input_fd);
     }
     // Apply output redirection if needed
     if (output_fd != STDOUT_FILENO) {
-        dup2(output_fd, STDOUT_FILENO);
+        if (dup2(output_fd, STDOUT_FILENO) == -1) {
+            perror("dup2");
+            exit(1);
+        }
         close(output_fd);
     }
 
