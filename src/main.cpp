@@ -279,7 +279,6 @@ int main()
         if (file_space != string::npos) {
             string history_file = input.substr(file_space + 1);
             ofstream file(history_file);
-            if (file.is_open()) {
                 for (const auto& command : commandHistory) {
                     file << command << endl;
                 }
