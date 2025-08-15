@@ -15,14 +15,13 @@
 #include <sstream>
 
 using namespace std;
-
+void execute_pipeline(vector<string> &commands);
+int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd);
 string find_executable_path(string command);
 string extractExecutable(string &input);
 string handleQuote(string echoInput);
 char* command_generator(const char* text, int state);
 char** command_completion(const char* text, int start, int end);
-void execute_pipeline(vector<string> &commands);
-int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd);
 
 set<string> commands = {"exit", "echo", "type", "pwd", "cd"};
 
@@ -542,27 +541,33 @@ string find_executable_path(string command)
   return "";
 }
 
-void execute_pipeline(vector<string> &commands) {
-    int num_cmds = commands.size();
-    int pipefd[2];
+void execute_pipeline(vector<string> &cmds) {
+    int num_cmds = cmds.size();
     int input_fd = STDIN_FILENO;
 
     for (int i = 0; i < num_cmds; ++i) {
+        int pipefd[2];
         if (i < num_cmds - 1) {
-            pipe(pipefd);
+            if (pipe(pipefd) == -1) {
+                perror("pipe");
+                exit(1);
+            }
         }
 
         pid_t pid = fork();
-        if (pid == 0) {
-            // Child
+        if (pid == -1) {
+            perror("fork");
+            exit(1);
+        }
+        if (pid == 0) { // child
             int output_fd = (i < num_cmds - 1) ? pipefd[1] : STDOUT_FILENO;
-            run_builtin_or_exec(commands[i], output_fd, input_fd);
+            if (i < num_cmds - 1) close(pipefd[0]); // close read end in child
+            run_builtin_or_exec(cmds[i], output_fd, input_fd);
             exit(0);
-        } else {
-            // Parent
+        } else { // parent
             if (input_fd != STDIN_FILENO) close(input_fd);
             if (i < num_cmds - 1) {
-                close(pipefd[1]);
+                close(pipefd[1]); // close write end in parent
                 input_fd = pipefd[0];
             }
             waitpid(pid, nullptr, 0);
@@ -571,32 +576,41 @@ void execute_pipeline(vector<string> &commands) {
 }
 
 int run_builtin_or_exec(const string &cmd, int output_fd, int input_fd) {
-    // Redirect if part of pipeline
+    // Apply input redirection if needed
     if (input_fd != STDIN_FILENO) {
         dup2(input_fd, STDIN_FILENO);
         close(input_fd);
     }
+    // Apply output redirection if needed
     if (output_fd != STDOUT_FILENO) {
         dup2(output_fd, STDOUT_FILENO);
         close(output_fd);
     }
 
-    // Detect & run built-ins
+    // Built-ins
     if (cmd.rfind("echo", 0) == 0) {
         string echoOutput = handleQuote(cmd.substr(5));
         cout << echoOutput << endl;
+        cout.flush();
         return 0;
     }
     else if (cmd == "pwd") {
         cout << filesystem::current_path().string() << endl;
+        cout.flush();
         return 0;
     }
     else if (cmd.rfind("type", 0) == 0) {
         string command = cmd.substr(5);
         if (commands.find(command) != commands.end())
             cout << command << " is a shell builtin" << endl;
-        else
-            cout << command << ": not found" << endl;
+        else {
+            string executable_path = find_executable_path(command);
+            if (!executable_path.empty())
+                cout << command << " is " << executable_path << endl;
+            else
+                cout << command << ": not found" << endl;
+        }
+        cout.flush();
         return 0;
     }
 
