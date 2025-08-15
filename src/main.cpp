@@ -26,6 +26,7 @@ int main()
   // Flush after every std::cout / std:cerr
 
   vector<string> commandHistory;
+  int last_appended_index = 0;
   using_history();
   while(1){
   cout << unitbuf;
@@ -290,6 +291,25 @@ int main()
         } else {
             cout << "history: -w requires a file name" << endl;
         }
+    } else if (space != string::npos && input.substr(space + 1, 2) == "-a") {
+        size_t file_space = input.find(' ', space + 1);
+        if (file_space != string::npos) {
+            string history_file = input.substr(file_space + 1);
+            ofstream file(history_file, ios_base::app);
+            if (file.is_open()) {
+                for (int i = last_appended_index; i < commandHistory.size(); i++) {
+                    file << commandHistory[i] << endl;
+                }
+                last_appended_index = commandHistory.size();
+                file.close();
+            } else {
+                cout << "Unable to open history file" << endl;
+            }
+        } else {
+            cout << "history: -a requires a file name" << endl;
+        }
+        add_history(input.c_str());
+        commandHistory.push_back(input);
     } else if (space != string::npos && input.substr(space + 1, 2) == "-r") {
         size_t file_space = input.find(' ', space + 1);
         if (file_space != string::npos) {
