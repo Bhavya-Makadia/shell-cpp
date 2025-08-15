@@ -283,9 +283,6 @@ int main()
                     file << command << endl;
                 }
                 file.close();
-            } else {
-                cout << "Unable to open history file" << endl;
-            }
         } else {
             cout << "history: -w requires a file name" << endl;
         }
